@@ -1,0 +1,1743 @@
+{
+  "name": "notion-vectorsync-pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "hour": 2
+            }
+          ]
+        },
+        "event": "pagedUpdatedInDatabase",
+        "databaseId": {
+          "__rl": true,
+          "value": "=37ed8fbd7e36803e9977c04b9facb6ff",
+          "mode": "id"
+        },
+        "simple": false
+      },
+      "type": "n8n-nodes-base.notionTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2080,
+        720
+      ],
+      "id": "82f0b087-e127-42dd-863c-ca7e7eaacb57",
+      "name": "Notion Trigger",
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.properties['Action Tags']?.select?.name }}",
+                    "rightValue": "Action",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d72de7ab-c1b3-4d7b-b721-a1a5d59babbd"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Action"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "28ca6a72-fabd-479f-8925-88fd7d593888",
+                    "leftValue": "={{ $json.properties['Action Tags']?.select?.name }}",
+                    "rightValue": "Project",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Project"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cc543103-b306-43bc-80c1-8345f19e6e9f",
+                    "leftValue": "={{ $json.properties['Action Tags']?.select?.name }}",
+                    "rightValue": "Habit",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Habit"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4f7664e2-505a-4027-9db1-13c837951d15",
+                    "leftValue": "={{ $json.properties['Action Tags']?.select?.name }}",
+                    "rightValue": "Reference",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reference"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "83cd9783-c1dc-40d8-be31-0c353896c14f",
+                    "leftValue": "={{ $json.properties['Action Tags']?.select?.name }}",
+                    "rightValue": "Incubate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Incubate"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "de8ee788-fdc1-4a7e-9473-97256100e4e2",
+                    "leftValue": "={{ $json.properties['Action Tags']?.select?.name }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Inbox"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1856,
+        656
+      ],
+      "id": "952a7b30-421a-4446-bc2a-abc37dc641b9",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst originalItems = $items('Switch', 1);\n\n\nconst fetchedPages = items;\n\n\nconst relationDataMap = {};\nfor (const page of fetchedPages) {\n  if (page.json && page.json.id) {\n    const props = page.json.properties;\n\n    \n    const title = props.Stuff?.title[0]?.plain_text || props.Name?.title[0]?.plain_text || 'Невідома назва';\n\n    \n    const entityType = props['Action Tags']?.select?.name || props['Action type']?.select?.name || 'елемент';\n\n    relationDataMap[page.json.id] = {\n      title: title,\n      entityType: entityType\n    };\n  }\n}\n\n\nconst priorityMap = {\n  '⭐⭐⭐⭐⭐': 'важливим і терміновим', '⭐⭐⭐⭐': 'важливим, але не терміновим',\n  '⭐⭐⭐': 'терміновим, але не важливим', '⭐⭐': 'не важливим і не терміновим',\n  '⭐': 'бажаним до виконання, але не обов\\'язковим (хотілка)'\n};\nconst energyMap = {\n  '⚡⚡⚡⚡⚡': 'дуже важким і довготривалим', '⚡⚡⚡⚡': 'дуже важким або довготривалим',\n  '⚡⚡⚡': 'відносно важким і довготривалим', '⚡⚡': 'відносно важким і відносно довготривалим',\n  '⚡': 'швидким і легким'\n};\nconst entityLocale = {\n    'Action': 'дія', 'Project': 'проєкт', 'Habit': 'звичка',\n    'Reference': 'довідковий матеріал', 'Incubate': 'ідея', 'Inbox': 'елемент', 'Person': 'людина'\n};\n\nconst finalResults = [];\n\n\n\n\nfor (const item of originalItems) {\n  const originalItem = item.json;\n  const props = originalItem.properties;\n\n  let contentParts = [];\n  \n  \n  const entityType = 'Project';\n  const title = props.Stuff?.title[0]?.plain_text || '';\n  const priorityEmoji = props.Priority?.select?.name || '';\n  const energyEmoji = props.Energy?.select?.name || '';\n  const contextTags = props.Context?.multi_select.map(tag => tag.name);\n  \n  const remainingTasks = props['Remaining Tasks']?.rollup?.number;\n  const completionPercent = props['Completion']?.rollup?.number;\n\n  \n  let summary = `Це запис про проєкт з назвою \"${title}\".`;\n  contentParts.push(summary);\n\n  \n  const priorityText = priorityMap[priorityEmoji];\n  if (priorityText) {\n    contentParts.push(`Цей проєкт є ${priorityText}.`);\n  }\n  const energyText = energyMap[energyEmoji];\n  if (energyText) {\n    contentParts.push(`За складністю та часом виконання цей проєкт є ${energyText}.`);\n  }\n  \n  if (completionPercent !== null && completionPercent !== undefined) {\n    contentParts.push(`На даний момент, проєкт завершено на ${Math.round(completionPercent * 100)}%.`);\n  }\n  if (remainingTasks !== null && remainingTasks !== undefined) {\n    contentParts.push(`Залишилось виконати ${remainingTasks} завдань.`);\n  }\n  if (contextTags && contextTags.length > 0) {\n    contentParts.push(`Цей проєкт відноситься до наступних контекстів: ${contextTags.join(', ')}.`);\n  }\n\n  \n  function addRelationTitles(prop, narrativePrefix) {\n      const relations = prop?.relation || [];\n      if (relations.length === 0) return;\n      const descriptions = relations.map(r => {\n          const relatedItem = relationDataMap[r.id];\n          if (!relatedItem) return null;\n          const localizedType = entityLocale[relatedItem.entityType] || 'елемент';\n          return `${localizedType} «${relatedItem.title}»`;\n      }).filter(Boolean);\n      if (descriptions.length > 0) {\n          contentParts.push(`${narrativePrefix}: ${descriptions.join(', ')}.`);\n      }\n  }\n  addRelationTitles(props['Level up ⬆️'], 'Цей проєкт є частиною');\n  addRelationTitles(props['Level down ⬇️'], 'Цей проєкт включає в себе наступні завдання');\n  addRelationTitles(props['⚠Depends on'], 'Виконання проєкту залежить від');\n  addRelationTitles(props['⛔Blocking'], 'Цей проєкт блокує');\n  addRelationTitles(props['Related People'], 'До проєкту залучені');\n\n\n  const finalContent = contentParts.join(' ');\n  \n  \n  const priorityLevel = priorityEmoji.length;\n  const energyLevel = energyEmoji.length;\n  const finalData = {\n      notion_id: originalItem.id,\n      entity_type: entityType,\n      title: title || null,\n      content: finalContent,\n      priority_level: priorityLevel,\n      energy_level: energyLevel,\n      due_date: props['Due Date']?.date?.start || null,\n      created_time: props.Created?.created_time || null,\n      last_edited_time: props['Last Touch']?.last_edited_time || null,\n      metadata: {\n          url: originalItem.url,\n          done: props.Done?.checkbox || false,\n          priority_emoji: priorityEmoji || null,\n          energy_emoji: energyEmoji || null,\n          \n          remaining_tasks: remainingTasks,\n          completion_percent: completionPercent,\n          level_up: getRelationDetails(props['Level up ⬆️']), \n          level_down: getRelationDetails(props['Level down ⬇️']),\n          related_people: getRelationDetails(props['Related People']),\n          context_tags: contextTags || []\n      }\n  };\n  \n  finalResults.push(finalData);\n}\n\n\nfunction getRelationDetails(prop) {\n    const relations = prop?.relation || [];\n    return relations.map(r => ({\n      id: r.id,\n      name: relationDataMap[r.id]?.title || null\n    })).filter(r => r.name);\n}\n\n\nreturn finalResults;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        336
+      ],
+      "id": "a2c8a853-b01a-4705-88bd-4f7f4043f6bc",
+      "name": "Prepare data for projects"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst allRelationIds = new Set(); \n\nfor (const item of items) {\n  const props = item.json.properties;\n  \n  \n  const addIdsToSet = (prop) => {\n    const relations = prop?.relation || [];\n    relations.forEach(r => allRelationIds.add(r.id));\n  };\n\n  \n  addIdsToSet(props['Level up ⬆️']);\n  addIdsToSet(props['Level down ⬇️']);\n  addIdsToSet(props['⚠Depends on']);\n  addIdsToSet(props['⛔Blocking']);\n  \n  addIdsToSet(props['Related People']);\n}\n\n\n\nreturn Array.from(allRelationIds).map(id => ({ id: id }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1552,
+        336
+      ],
+      "id": "1608fd00-b9fa-47e0-812d-b60255cadbdd",
+      "name": "Extractor relation for Project",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "75381de9-67ed-4b79-9f39-af54bd07c08e",
+              "leftValue": "={{ $json.properties[\"Habit Stage\"] }}",
+              "rightValue": "Anchor",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -1552,
+        720
+      ],
+      "id": "4fa44c00-4002-4a2f-8328-c9c0320a2bba",
+      "name": "Not Anchor"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst allRelationIds = new Set(); \n\nfor (const item of items) {\n  const props = item.json.properties;\n  const addIdsToSet = (prop) => {\n    const relations = prop?.relation || [];\n    relations.forEach(r => allRelationIds.add(r.id));\n  };\n  addIdsToSet(props['Level up ⬆️']);\n  addIdsToSet(props['Level down ⬇️']);\n  addIdsToSet(props['⚠Depends on']);\n  addIdsToSet(props['⛔Blocking']);\n  addIdsToSet(props['Keeps intact']);\n  addIdsToSet(props['Anchored too']);\n}\nreturn Array.from(allRelationIds).map(id => ({ id: id }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        720
+      ],
+      "id": "085c6135-c8df-4928-a3e3-85920776d04a",
+      "name": "Extractor relation for Habit",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst allRelationIds = new Set(); \n\nfor (const item of items) {\n  const props = item.json.properties;\n  \n  const addIdsToSet = (prop) => {\n    const relations = prop?.relation || [];\n    relations.forEach(r => allRelationIds.add(r.id));\n  };\n\n  addIdsToSet(props['Level up ⬆️']);\n  addIdsToSet(props['Level down ⬇️']);\n  addIdsToSet(props['⚠Depends on']);\n  addIdsToSet(props['⛔Blocking']);\n}\n\n\n\nreturn Array.from(allRelationIds).map(id => ({ id: id }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1552,
+        -48
+      ],
+      "id": "6cf05245-b0d3-49d5-9063-bc1f06057e17",
+      "name": "Extractor relation for Action",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst originalItems = $items('Not Anchor');\n\n\nconst fetchedPages = items;\n\n\nconst relationDataMap = {};\nfor (const page of fetchedPages) {\n  if (page.json && page.json.id) {\n    relationDataMap[page.json.id] = {\n      title: page.json.properties.Stuff?.title[0]?.plain_text || 'Невідома назва',\n      entityType: page.json.properties['Action Tags']?.select?.name || 'елемент'\n    };\n  }\n}\n\n\nconst priorityMap = {\n  '⭐⭐⭐⭐⭐': 'важливою і терміновою', '⭐⭐⭐⭐': 'важливою, але не терміновою',\n  '⭐⭐⭐': 'терміновою, але не важливою', '⭐⭐': 'не важливою і не терміновою',\n  '⭐': 'бажаною до виконання, але не обов\\'язковою (хотілка)'\n};\nconst energyMap = {\n  '⚡⚡⚡⚡⚡': 'дуже важкою і довготривалою', '⚡⚡⚡⚡': 'дуже важкою або довготривалою',\n  '⚡⚡⚡': 'відносно важкою і довготривалою', '⚡⚡': 'відносно важкою і відносно довготривалою',\n  '⚡': 'швидкою і легкою'\n};\nconst entityLocale = {\n    'Action': 'дія', 'Project': 'проєкт', 'Habit': 'звичка',\n    'Reference': 'довідковий матеріал', 'Incubate': 'ідея', 'Inbox': 'елемент'\n};\n\n\nconst finalResults = [];\n\n\n\n\nfor (const item of originalItems) {\n  const originalItem = item.json;\n  const props = originalItem.properties;\n\n  let contentParts = [];\n  \n  const entityType = 'Habit';\n  const title = props.Stuff?.title[0]?.plain_text || '';\n  const priorityEmoji = props.Priority?.select?.name || '';\n  const energyEmoji = props.Energy?.select?.name || '';\n  const contextTags = props.Context?.multi_select.map(tag => tag.name);\n  const habitStage = props['Habit Stage']?.select?.name;\n\n  \n  let summary = `Це запис про звичку (також класифікується як рутина) з назвою \"${title}\".`;\n  contentParts.push(summary);\n\n  \n  if (habitStage) {\n    contentParts.push(`На даний момент, ця звичка знаходиться на стадії \"${habitStage}\".`);\n  }\n  const priorityText = priorityMap[priorityEmoji];\n  if (priorityText) {\n    contentParts.push(`Ця звичка є ${priorityText}.`);\n  }\n  const energyText = energyMap[energyEmoji];\n  if (energyText) {\n    contentParts.push(`За складністю та часом виконання ця звичка є ${energyText}.`);\n  }\n  if (contextTags && contextTags.length > 0) {\n    contentParts.push(`Ця звичка відноситься до наступних контекстів: ${contextTags.join(', ')}.`);\n  }\n\n  \n  function addRelationTitles(prop, narrativePrefix) {\n      const relations = prop?.relation || [];\n      if (relations.length === 0) return;\n\n      const descriptions = relations.map(r => {\n          const relatedItem = relationDataMap[r.id];\n          if (!relatedItem) return null;\n          \n          const localizedType = entityLocale[relatedItem.entityType] || 'елемент';\n          return `${localizedType} «${relatedItem.title}»`;\n      }).filter(Boolean);\n\n      if (descriptions.length > 0) {\n          contentParts.push(`${narrativePrefix}: ${descriptions.join(', ')}.`);\n      }\n  }\n\n  addRelationTitles(props['Level up ⬆️'], 'Ця звичка є частиною');\n  addRelationTitles(props['Level down ⬇️'], 'Ця звичка включає в себе');\n  addRelationTitles(props['Keeps intact'], 'Ця звичка підтримує');\n  addRelationTitles(props['Anchored too'], 'Також пов\\'язана з');\n  addRelationTitles(props['⚠Depends on'], 'Ця звичка залежить від');\n  addRelationTitles(props['⛔Blocking'], 'Ця звичка блокує');\n\n  const finalContent = contentParts.join(' ');\n  \n  \n  const priorityLevel = priorityEmoji.length;\n  const energyLevel = energyEmoji.length;\n  \n  const finalData = {\n      notion_id: originalItem.id,\n      entity_type: entityType,\n      title: title || null,\n      content: finalContent,\n      priority_level: priorityLevel,\n      energy_level: energyLevel,\n      due_date: props['Due Date']?.date?.start || null,\n      created_time: props.Created?.created_time || null,\n      last_edited_time: props['Last Touch']?.last_edited_time || null,\n      metadata: {\n          url: originalItem.url,\n          done: props.Done?.checkbox || false,\n          priority_emoji: priorityEmoji || null,\n          energy_emoji: energyEmoji || null,\n          habit_stage: habitStage || null,\n          level_up: getRelationDetails(props['Level up ⬆️']),\n          level_down: getRelationDetails(props['Level down ⬇️']),\n          keeps_intact: getRelationDetails(props['Keeps intact']),\n          anchored_too: getRelationDetails(props['Anchored too']),\n          depends_on: getRelationDetails(props['⚠Depends on']),\n          blocking: getRelationDetails(props['⛔Blocking']),\n          context_tags: contextTags || []\n      }\n  };\n  \n  finalResults.push(finalData);\n}\n\n\nfunction getRelationDetails(prop) {\n    const relations = prop?.relation || [];\n    return relations.map(r => ({\n      id: r.id,\n      name: relationDataMap[r.id]?.title || null\n    })).filter(r => r.name);\n}\n\n\nreturn finalResults;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        720
+      ],
+      "id": "3ca94f49-61ed-4dd5-b9e7-7e53c5badca2",
+      "name": "Prepare data for habits"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst originalItems = $items('Switch', 4); \n\n\nconst fetchedPages = items;\n\n\nconst relationDataMap = {};\nfor (const page of fetchedPages) {\n  if (page.json && page.json.id) {\n    relationDataMap[page.json.id] = {\n      title: page.json.properties.Stuff?.title[0]?.plain_text || page.json.properties.Name?.title[0]?.plain_text || 'Невідома назва',\n      entityType: page.json.properties['Action Tags']?.select?.name || page.json.properties['Action type']?.select?.name || 'елемент'\n    };\n  }\n}\n\n\nconst priorityMap = { '⭐⭐⭐⭐⭐': 'важливою і терміновою', '⭐⭐⭐⭐': 'важливою, але не терміновою', '⭐⭐⭐': 'терміновою, але не важливою', '⭐⭐': 'не важливою і не терміновою', '⭐': 'бажаною до виконання, але не обов\\'язковою' };\nconst energyMap = { '⚡⚡⚡⚡⚡': 'дуже важкою і довготривалою', '⚡⚡⚡⚡': 'дуже важкою або довготривалою', '⚡⚡⚡': 'відносно важкою і довготривалою', '⚡⚡': 'відносно важкою і відносно довготривалою', '⚡': 'швидкою і легкою' };\nconst entityLocale = { 'Action': 'дія', 'Project': 'проєкт', 'Habit': 'звичка', 'Reference': 'довідковий матеріал', 'Incubate': 'ідея', 'Inbox': 'елемент', 'Person': 'людина' };\n\nconst finalResults = [];\n\n\n\n\nfor (const item of originalItems) {\n  const originalItem = item.json;\n  const props = originalItem.properties;\n\n  let contentParts = [];\n  \n  \n  const entityType = 'Incubate';\n  const title = props.Stuff?.title[0]?.plain_text || '';\n  const priorityEmoji = props.Priority?.select?.name || '';\n  const energyEmoji = props.Energy?.select?.name || '';\n  const contextTags = props.Context?.multi_select.map(tag => tag.name);\n\n  \n  let summary = `Це запис про ідею в інкубаторі (також класифікується як задум) з назвою \"${title}\".`;\n  contentParts.push(summary);\n\n  \n  const priorityText = priorityMap[priorityEmoji];\n  if (priorityText) {\n    contentParts.push(`Ця ідея є ${priorityText}.`);\n  }\n  const energyText = energyMap[energyEmoji];\n  if (energyText) {\n    contentParts.push(`За складністю реалізації ця ідея є ${energyText}.`);\n  }\n  if (contextTags && contextTags.length > 0) {\n    contentParts.push(`Ця ідея відноситься до наступних контекстів: ${contextTags.join(', ')}.`);\n  }\n\n  \n  function addRelationTitles(prop, narrativePrefix) {\n      const relations = prop?.relation || [];\n      if (relations.length === 0) return;\n      const descriptions = relations.map(r => {\n          const relatedItem = relationDataMap[r.id];\n          if (!relatedItem) return null;\n          const localizedType = entityLocale[relatedItem.entityType] || 'елемент';\n          return `${localizedType} «${relatedItem.title}»`;\n      }).filter(Boolean);\n      if (descriptions.length > 0) {\n          contentParts.push(`${narrativePrefix}: ${descriptions.join(', ')}.`);\n      }\n  }\n  \n  addRelationTitles(props['Level up ⬆️'], 'Ця ідея є частиною');\n  addRelationTitles(props['Level down ⬇️'], 'Ця ідея включає в себе');\n  addRelationTitles(props['⚠Depends on'], 'Реалізація ідеї залежить від');\n  addRelationTitles(props['⛔Blocking'], 'Ця ідея блокує');\n\n  const finalContent = contentParts.join(' ');\n  \n  \n  const priorityLevel = priorityEmoji.length;\n  const energyLevel = energyEmoji.length;\n  const finalData = {\n      notion_id: originalItem.id,\n      entity_type: entityType,\n      title: title || null,\n      content: finalContent,\n      priority_level: priorityLevel,\n      energy_level: energyLevel,\n      due_date: props['Due Date']?.date?.start || null,\n      created_time: props.Created?.created_time || null,\n      last_edited_time: props['Last Touch']?.last_edited_time || null,\n      metadata: {\n          url: originalItem.url,\n          done: props.Done?.checkbox || false,\n          priority_emoji: priorityEmoji || null,\n          energy_emoji: energyEmoji || null,\n          level_up: getRelationDetails(props['Level up ⬆️']),\n          level_down: getRelationDetails(props['Level down ⬇️']),\n          depends_on: getRelationDetails(props['⚠Depends on']),\n          blocking: getRelationDetails(props['⛔Blocking']),\n          context_tags: contextTags || []\n      }\n  };\n  \n  finalResults.push(finalData);\n}\n\n\nfunction getRelationDetails(prop) {\n    const relations = prop?.relation || [];\n    return relations.map(r => ({\n      id: r.id,\n      name: relationDataMap[r.id]?.title || null\n    })).filter(r => r.name);\n}\n\n\nreturn finalResults;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        1104
+      ],
+      "id": "594d48bc-3bce-4d75-ad02-a97d3cad6425",
+      "name": "Prepare data for Incubate"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst allRelationIds = new Set(); \n\nfor (const item of items) {\n  const props = item.json.properties;\n  \n  const addIdsToSet = (prop) => {\n    const relations = prop?.relation || [];\n    relations.forEach(r => allRelationIds.add(r.id));\n  };\n\n  addIdsToSet(props['Level up ⬆️']);\n  addIdsToSet(props['Level down ⬇️']);\n  addIdsToSet(props['⚠Depends on']);\n  addIdsToSet(props['⛔Blocking']);\n}\n\n\n\nreturn Array.from(allRelationIds).map(id => ({ id: id }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1552,
+        1488
+      ],
+      "id": "47a9f1aa-0c0b-4cbe-b56d-9f55b50ea251",
+      "name": "Extractor relation for Inbox",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst originalItems = $items('Switch', 5);\n\n\nconst fetchedPages = items;\n\n\nconst relationDataMap = {};\nfor (const page of fetchedPages) {\n  if (page.json && page.json.id) {\n    relationDataMap[page.json.id] = {\n      title: page.json.properties.Stuff?.title[0]?.plain_text || page.json.properties.Name?.title[0]?.plain_text || 'Невідома назва',\n      entityType: page.json.properties['Action Tags']?.select?.name || page.json.properties['Action type']?.select?.name || 'елемент'\n    };\n  }\n}\n\n\nconst priorityMap = {\n  '⭐⭐⭐⭐⭐': 'важливим і терміновим', '⭐⭐⭐⭐': 'важливим, але не терміновим',\n  '⭐⭐⭐': 'терміновим, але не важливим', '⭐⭐': 'не важливим і не терміновим',\n  '⭐': 'бажаним до виконання, але не обов\\'язковим (хотілка)'\n};\nconst energyMap = {\n  '⚡⚡⚡⚡⚡': 'дуже важким і довготривалим', '⚡⚡⚡⚡': 'дуже важким або довготривалим',\n  '⚡⚡⚡': 'відносно важким і довготривалим', '⚡⚡': 'відносно важким і відносно довготривалим',\n  '⚡': 'швидким і легким'\n};\nconst entityLocale = {\n    'Action': 'дія', 'Project': 'проєкт', 'Habit': 'звичка',\n    'Reference': 'довідковий матеріал', 'Incubate': 'ідея', 'Inbox': 'елемент', 'Person': 'людина'\n};\n\n\nconst finalResults = [];\n\n\n\n\nfor (const item of originalItems) {\n  const originalItem = item.json;\n  const props = originalItem.properties;\n\n  let contentParts = [];\n  \n  \n  const entityType = 'Inbox';\n  const title = props.Stuff?.title[0]?.plain_text || '';\n  const priorityEmoji = props.Priority?.select?.name || '';\n  const energyEmoji = props.Energy?.select?.name || '';\n  const contextTags = props.Context?.multi_select.map(tag => tag.name);\n\n  \n  \n  let summary = `Це необроблений запис з вхідних з назвою \"${title}\".`;\n  contentParts.push(summary);\n\n  \n  const priorityText = priorityMap[priorityEmoji];\n  if (priorityText) {\n    contentParts.push(`Цей запис є ${priorityText}.`);\n  }\n  const energyText = energyMap[energyEmoji];\n  if (energyText) {\n    contentParts.push(`За складністю цей запис є ${energyText}.`);\n  }\n  if (contextTags && contextTags.length > 0) {\n    contentParts.push(`Цей запис відноситься до наступних контекстів: ${contextTags.join(', ')}.`);\n  }\n\n  \n  function addRelationTitles(prop, narrativePrefix) {\n      const relations = prop?.relation || [];\n      if (relations.length === 0) return;\n      const descriptions = relations.map(r => {\n          const relatedItem = relationDataMap[r.id];\n          if (!relatedItem) return null;\n          const localizedType = entityLocale[relatedItem.entityType] || 'елемент';\n          return `${localizedType} «${relatedItem.title}»`;\n      }).filter(Boolean);\n      if (descriptions.length > 0) {\n          contentParts.push(`${narrativePrefix}: ${descriptions.join(', ')}.`);\n      }\n  }\n  addRelationTitles(props['Level up ⬆️'], 'Цей запис є частиною');\n  addRelationTitles(props['Level down ⬇️'], 'Цей запис включає в себе наступні завдання');\n  addRelationTitles(props['⚠Depends on'], 'Виконання запису залежить від');\n  addRelationTitles(props['⛔Blocking'], 'Цей запис блокує');\n\n\n  const finalContent = contentParts.join(' ');\n  \n  \n  const priorityLevel = priorityEmoji.length;\n  const energyLevel = energyEmoji.length;\n  const finalData = {\n      notion_id: originalItem.id,\n      entity_type: entityType,\n      title: title || null,\n      content: finalContent,\n      priority_level: priorityLevel,\n      energy_level: energyLevel,\n      due_date: props['Due Date']?.date?.start || null,\n      created_time: props.Created?.created_time || null,\n      last_edited_time: props['Last Touch']?.last_edited_time || null,\n      metadata: {\n          url: originalItem.url,\n          done: props.Done?.checkbox || false,\n          priority_emoji: priorityEmoji || null,\n          energy_emoji: energyEmoji || null,\n          level_up: getRelationDetails(props['Level up ⬆️']),\n          level_down: getRelationDetails(props['Level down ⬇️']),\n          depends_on: getRelationDetails(props['⚠Depends on']),\n          blocking: getRelationDetails(props['⛔Blocking']),\n          context_tags: contextTags || []\n      }\n  };\n  \n  finalResults.push(finalData);\n}\n\n\nfunction getRelationDetails(prop) {\n    const relations = prop?.relation || [];\n    return relations.map(r => ({\n      id: r.id,\n      name: relationDataMap[r.id]?.title || null\n    })).filter(r => r.name);\n}\n\n\nreturn finalResults;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        1488
+      ],
+      "id": "3154ddec-4144-4355-93b6-b1de79b79984",
+      "name": "Prepare data for Inbox"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst allRelationIds = new Set(); \n\nfor (const item of items) {\n  const props = item.json.properties;\n  \n  const addIdsToSet = (prop) => {\n    const relations = prop?.relation || [];\n    relations.forEach(r => allRelationIds.add(r.id));\n  };\n\n  addIdsToSet(props['Level up ⬆️']);\n  addIdsToSet(props['Level down ⬇️']);\n  addIdsToSet(props['⚠Depends on']);\n  addIdsToSet(props['⛔Blocking']);\n}\n\n\n\nreturn Array.from(allRelationIds).map(id => ({ id: id }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1552,
+        1104
+      ],
+      "id": "1f7a7aca-2db2-4a08-a2f2-da1cd5c18ce9",
+      "name": "Extractor relation for Incubate",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const originalItems = $items('Switch', 0);\n\n\nconst fetchedPages = items;\n\n\nconst relationDataMap = {};\nfor (const page of fetchedPages) {\n  if (page.json && page.json.id) {\n    relationDataMap[page.json.id] = {\n      title: page.json.properties.Stuff?.title[0]?.plain_text || 'Невідома назва',\n      entityType: page.json.properties['Action Tags']?.select?.name || 'елемент'\n    };\n  }\n}\n\n\nconst priorityMap = { '⭐⭐⭐⭐⭐': 'важливою і терміновою', \n'⭐⭐⭐⭐': 'важливою, але не терміновою', \n'⭐⭐⭐': 'терміновою, але не важливою', \n'⭐⭐': 'не важливою і не терміновою', \n'⭐': 'бажаною до виконання, але не обов\\'язковою (хотілка)' };\n\nconst energyMap = { \n  '⚡⚡⚡⚡⚡': 'дуже важкою і довготривалою', \n  '⚡⚡⚡⚡': 'дуже важкою або довготривалою', \n  '⚡⚡⚡': 'відносно важкою і довготривалою', \n  '⚡⚡': 'відносно важкою і відносно довготривалою', \n  '⚡': 'швидкою і легкою' };\n\nconst entityLocale = { 'Action': 'дія', 'Project': 'проєкт', 'Habit': 'звичка', 'Reference': 'довідковий матеріал', 'Incubate': 'ідея', 'Inbox': 'елемент' };\n\nconst finalResults = [];\n\n\n\n\nfor (const item of originalItems) {\n  const originalItem = item.json;\n  const props = originalItem.properties;\n\n  let contentParts = [];\n  \n  const entityType = 'Action';\n  const title = props.Stuff?.title[0]?.plain_text || '';\n  const priorityEmoji = props.Priority?.select?.name || '';\n  const energyEmoji = props.Energy?.select?.name || '';\n  const contextTags = props.Context?.multi_select.map(tag => tag.name);\n  const scheduledDate = props['Scheduled']?.date?.start || null;\n  \n  let summary = `Це запис про дію (також класифікується як завдання) з назвою \"${title}\".`;\n  contentParts.push(summary);\n\n  \n  const priorityText = priorityMap[priorityEmoji];\n  if (priorityText) { contentParts.push(`Ця дія є ${priorityText}.`); }\n  const energyText = energyMap[energyEmoji];\n  if (energyText) { contentParts.push(`За складністю та часом виконання ця дія є ${energyText}.`); }\n  if (contextTags && contextTags.length > 0) { contentParts.push(`Ця дія відноситься до наступних контекстів: ${contextTags.join(', ')}.`); }\n\n  \n  function addRelationTitles(prop, narrativePrefix) {\n      const relations = prop?.relation || [];\n      if (relations.length === 0) return;\n      const descriptions = relations.map(r => {\n          const relatedItem = relationDataMap[r.id];\n          if (!relatedItem) return null;\n          const localizedType = entityLocale[relatedItem.entityType] || 'елемент';\n          return `${localizedType} «${relatedItem.title}»`;\n      }).filter(Boolean);\n      if (descriptions.length > 0) {\n          contentParts.push(`${narrativePrefix}: ${descriptions.join(', ')}.`);\n      }\n  }\n  addRelationTitles(props['Level up ⬆️'], 'Ця дія є частиною');\n  addRelationTitles(props['Level down ⬇️'], 'Включає в себе наступні підзадачі');\n  addRelationTitles(props['⚠Depends on'], 'Залежить від завершення');\n  addRelationTitles(props['⛔Blocking'], 'Блокує виконання');\n\n  const finalContent = contentParts.join(' ');\n  \n  \n  \n  \n  const priorityLevel = priorityEmoji.length;\n  const energyLevel = energyEmoji.length;\n\n  \n  const getRelationDetails = (prop) => {\n    const relations = prop?.relation || [];\n    return relations.map(r => ({\n      id: r.id,\n      name: relationDataMap[r.id]?.title || null\n    })).filter(r => r.name); \n  };\n\n  const finalData = {\n      notion_id: originalItem.id,\n      entity_type: entityType,\n      title: title || null,\n      content: finalContent,\n      priority_level: priorityLevel,\n      energy_level: energyLevel,\n      due_date: props['Due Date']?.date?.start || null,\n      scheduled: scheduledDate,\n      created_time: props.Created?.created_time || null,\n      last_edited_time: props['Last Touch']?.last_edited_time || null,\n      metadata: {\n          url: originalItem.url,\n          done: props.Done?.checkbox || false,\n          priority_emoji: priorityEmoji || null,\n          energy_emoji: energyEmoji || null,\n          \n          \n          level_up: getRelationDetails(props['Level up ⬆️']),\n          level_down: getRelationDetails(props['Level down ⬇️']),\n          depends_on: getRelationDetails(props['⚠Depends on']),\n          blocking: getRelationDetails(props['⛔Blocking']),\n          \n          context_tags: contextTags || []\n      }\n  };\n  \n  finalResults.push(finalData);\n}\n\n\nreturn finalResults;\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        -48
+      ],
+      "id": "1167004a-15f2-4279-b546-1ae268ee459b",
+      "name": "Prepare data for Actions"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "simple": false
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -1104,
+        -144
+      ],
+      "id": "fa5ead4b-b91e-41d6-9520-c3deda4d5b2d",
+      "name": "Fetch related pages (Actions)",
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "simple": false
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -1104,
+        240
+      ],
+      "id": "b802aecc-8934-48c8-bb41-fdeb2ce0e80b",
+      "name": "Fetch related pages (Projects)",
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "simple": false
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        624
+      ],
+      "id": "7387b0ad-021e-4d8b-ba88-7e6a1c1e1d6c",
+      "name": "Fetch related pages (Habits)",
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id || \"\"}}",
+          "mode": "id"
+        },
+        "simple": false
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -1104,
+        1008
+      ],
+      "id": "d6ce13cc-ab0c-4929-a3f0-a8434735053b",
+      "name": "Fetch related pages (Incubate)",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id || \"\"}}",
+          "mode": "id"
+        },
+        "simple": false
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -1104,
+        1392
+      ],
+      "id": "7811b472-72e5-41cd-9c12-3a83cd68005b",
+      "name": "Fetch related (Inbox)",
+      "alwaysOutputData": false,
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $items().map(item => item.json.content) }}"
+            },
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -656,
+        336
+      ],
+      "id": "2a0fc961-104f-4012-bd20-706f5d461a76",
+      "name": "Generate embeddings (Projects)",
+      "credentials": {
+        "openAiApi": {
+          "id": "ivhvfR2OOYsCUZEq",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $items().map(item => item.json.content) }}"
+            },
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -656,
+        -48
+      ],
+      "id": "eca3c32e-e5b5-4bf4-8196-27d3ff76dc3a",
+      "name": "Generate embeddings (Actions)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $items().map(item => item.json.content) }}"
+            },
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -432,
+        720
+      ],
+      "id": "4e67c99e-ed93-4323-a945-993d0245882f",
+      "name": "Generate embeddings (Habits)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $items().map(item => item.json.content) }}"
+            },
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -656,
+        1104
+      ],
+      "id": "60aaffee-c955-4d4b-978d-3965dc90c1b0",
+      "name": "Generate embeddings (Incubate)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $items().map(item => item.json.content) }}"
+            },
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -656,
+        1488
+      ],
+      "id": "b765d95c-2486-4a69-9c3e-9169e1b52558",
+      "name": "Generate embeddings (Inbox)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst item = $json;\n\nconst params = [\n  item.content,                 // $1\n  JSON.stringify(item.embedding), // $2\n  item.title,                     // $3\n  item.priority_level,            // $4\n  item.energy_level,              // $5\n  item.due_date,                  // $6\n  JSON.stringify(item.metadata),  // $7\n  item.notion_id,\n  item.entity_type,\n  item.scheduled,\n  item.created_time,\n  item.last_edited_time\n];\n\nreturn { params };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        336
+      ],
+      "id": "a5052b6c-94b3-461b-8b89-41c61b9d0719",
+      "name": "Format DB params (Projects)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n\nconst item = $json;\n\nconst params = [\n  item.content,                 \n  JSON.stringify(item.embedding), \n  item.title,                     \n  item.priority_level,            \n  item.energy_level,              \n  item.due_date,                  \n  JSON.stringify(item.metadata),  \n  item.notion_id,\n  item.entity_type,\n  item.scheduled,\n  item.created_time,\n  item.last_edited_time\n];\n\n\nreturn { params };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        -48
+      ],
+      "id": "a11a00e3-a33f-495b-8825-85dd63f5dc30",
+      "name": "Format DB params (Actions)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst item = $json;\n\nconst params = [\n  item.content,                 // $1\n  JSON.stringify(item.embedding), // $2\n  item.title,                     // $3\n  item.priority_level,            // $4\n  item.energy_level,              // $5\n  item.due_date,                  // $6\n  JSON.stringify(item.metadata),  // $7\n  item.notion_id,                 // $8\n  item.entity_type,              // $9;\n  item.created_time,\n  item.last_edited_time\n\nreturn { params };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        720
+      ],
+      "id": "ae69a806-d61e-49ea-b537-1869bb07b365",
+      "name": "Format DB params (Habits)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst item = $json;\n\nconst params = [\n  item.content,                 // $1\n  JSON.stringify(item.embedding), // $2\n  item.title,                     // $3\n  item.priority_level,            // $4\n  item.energy_level,              // $5\n  item.due_date,                  // $6\n  JSON.stringify(item.metadata),  // $7\n  item.notion_id,                 // $8\n  item.entity_type,              // $9\n  item.created_time,\n  item.last_edited_time\n];\n\n\nreturn { params };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        1104
+      ],
+      "id": "7f09bb09-7a4e-4d78-9204-08f6458f78f9",
+      "name": "Format DB params (Incubate)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\n\nconst params = [\n  item.content,                 // $1\n  JSON.stringify(item.embedding), // $2\n  item.title,                     // $3\n  item.priority_level,            // $4\n  item.energy_level,              // $5\n  item.due_date,                  // $6\n  JSON.stringify(item.metadata),  // $7\n  item.notion_id,                 // $8\n  item.entity_type,               // $9\n  item.created_time,\n  item.last_edited_time\n];\n\nreturn { params };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        1488
+      ],
+      "id": "34b2b723-02fd-486f-9f68-4b5cc4f6a066",
+      "name": "Format DB params (Inbox)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "884dfb5d-2f11-4ab2-b5fe-a4fb7e5d70ae",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1328,
+        -48
+      ],
+      "id": "e9610c53-dbc1-4674-ae40-75d4f82983e6",
+      "name": "Has relations?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "884dfb5d-2f11-4ab2-b5fe-a4fb7e5d70ae",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1328,
+        336
+      ],
+      "id": "2e75a8da-a352-4283-8d64-b1134bec099a",
+      "name": "Has relations?1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "884dfb5d-2f11-4ab2-b5fe-a4fb7e5d70ae",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1104,
+        720
+      ],
+      "id": "49cc9087-3d71-42ea-b3ba-d711c385bc2f",
+      "name": "Has relations?2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "884dfb5d-2f11-4ab2-b5fe-a4fb7e5d70ae",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1328,
+        1104
+      ],
+      "id": "c37f5be2-87fa-4b85-adcd-968d14ecbede",
+      "name": "Has relations?3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "884dfb5d-2f11-4ab2-b5fe-a4fb7e5d70ae",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1328,
+        1488
+      ],
+      "id": "cb28046e-50eb-41a7-876c-762b4c266025",
+      "name": "Has relations?4",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7eb26f84-dd57-4fe6-85b7-c28ad1bf8f23",
+              "name": "fetchedPages",
+              "value": "[]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1104,
+        48
+      ],
+      "id": "74c4136f-a3b8-401b-b7eb-a128c9c71adc",
+      "name": "Empty relations fallback"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7eb26f84-dd57-4fe6-85b7-c28ad1bf8f23",
+              "name": "fetchedPages",
+              "value": "[]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1104,
+        432
+      ],
+      "id": "f868f3cf-2baf-4a0c-a49a-ef2032e2a075",
+      "name": "Empty relations fallback1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7eb26f84-dd57-4fe6-85b7-c28ad1bf8f23",
+              "name": "fetchedPages",
+              "value": "[]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -880,
+        816
+      ],
+      "id": "642e3ad9-2124-4bc7-8419-2f8e04ac1353",
+      "name": "Empty relations fallback2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7eb26f84-dd57-4fe6-85b7-c28ad1bf8f23",
+              "name": "fetchedPages",
+              "value": "[]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1104,
+        1200
+      ],
+      "id": "82cb7138-7a58-4a82-94cc-1183b50740dc",
+      "name": "Empty relations fallback3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7eb26f84-dd57-4fe6-85b7-c28ad1bf8f23",
+              "name": "fetchedPages",
+              "value": "[]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1104,
+        1584
+      ],
+      "id": "9195fd90-94ef-4241-8371-e20087516ee0",
+      "name": "Empty relations fallback4"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst dataItems = $items(\"Prepare data for projects\");\n\n\n\nconst embeddingResponse = items[0].json;\nconst embeddings = embeddingResponse.data;\n\n\nfor (let i = 0; i < dataItems.length; i++) {\n  \n  \n  const embeddingObject = embeddings.find(e => e.index === i);\n  if (embeddingObject) {\n    dataItems[i].json.embedding = embeddingObject.embedding;\n  }\n}\n\n\nreturn dataItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        336
+      ],
+      "id": "f6e22fe4-4573-4baa-82a7-0f2760cac790",
+      "name": "Attach embeddings (Projects)"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst dataItems = $items(\"Prepare data for Incubate\");\n\n\n\nconst embeddingResponse = items[0].json;\nconst embeddings = embeddingResponse.data;\n\n\nfor (let i = 0; i < dataItems.length; i++) {\n  \n  \n  const embeddingObject = embeddings.find(e => e.index === i);\n  if (embeddingObject) {\n    dataItems[i].json.embedding = embeddingObject.embedding;\n  }\n}\n\n\nreturn dataItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        1104
+      ],
+      "id": "6de37d55-53f9-4b1a-93d5-333e64355818",
+      "name": "Attach embeddings (Incubate)"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst dataItems = $items(\"Prepare data for Inbox\");\n\n\n\nconst embeddingResponse = items[0].json;\nconst embeddings = embeddingResponse.data;\n\n\nfor (let i = 0; i < dataItems.length; i++) {\n  \n  \n  const embeddingObject = embeddings.find(e => e.index === i);\n  if (embeddingObject) {\n    dataItems[i].json.embedding = embeddingObject.embedding;\n  }\n}\n\nreturn dataItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        1488
+      ],
+      "id": "b52d9269-5cfd-4ce7-ad1d-66eea3d3087a",
+      "name": "Attach embeddings (Inbox)"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst dataItems = $items(\"Prepare data for habits\");\n\n\n\nconst embeddingResponse = items[0].json;\nconst embeddings = embeddingResponse.data;\n\n\nfor (let i = 0; i < dataItems.length; i++) {\n  \n  \n  const embeddingObject = embeddings.find(e => e.index === i);\n  if (embeddingObject) {\n    dataItems[i].json.embedding = embeddingObject.embedding;\n  }\n}\n\n\nreturn dataItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        720
+      ],
+      "id": "d1b53004-bf36-4bab-be20-515d03c88645",
+      "name": "Attach embeddings (Habits)"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst dataItems = $items(\"Prepare data for Actions\");\n\n\nconst embeddingResponse = items[0].json;\nconst embeddings = embeddingResponse.data;\n\n\nfor (let i = 0; i < dataItems.length; i++) {\n  \n  const embeddingObject = embeddings.find(e => e.index === i);\n  if (embeddingObject) {\n    dataItems[i].json.embedding = embeddingObject.embedding;\n  }\n}\n\n\nreturn dataItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        -48
+      ],
+      "id": "a04b8ecb-4b20-4c46-a5a8-b34e3c314f05",
+      "name": "Attach embeddings (Actions)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO documents (\n  content, embedding, title, priority_level, energy_level,\n  due_date, metadata, notion_id, entity_type, scheduled, notion_created_time, notion_last_edited_time)\nVALUES (\n  $1, $2::vector, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11, $12)\nON CONFLICT (notion_id)\nDO UPDATE SET\n  content = EXCLUDED.content,\n  embedding = EXCLUDED.embedding,\n  title = EXCLUDED.title,\n  priority_level = EXCLUDED.priority_level,\n  energy_level = EXCLUDED.energy_level,\n  due_date = EXCLUDED.due_date,\n  metadata = EXCLUDED.metadata,\n  entity_type = EXCLUDED.entity_type,\n  scheduled = EXCLUDED.scheduled,\n  notion_created_time =\n  EXCLUDED.notion_created_time,\n  notion_last_edited_time = EXCLUDED.notion_last_edited_time;",
+        "options": {
+          "queryReplacement": "={{ $json.params }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        16,
+        -48
+      ],
+      "id": "b218dbc2-82aa-44cd-80ad-fcd81e6a2a4a",
+      "name": "Upsert to Postgres (Actions)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO documents (\n  content, embedding, title, priority_level, energy_level,\n  due_date, metadata, notion_id, entity_type, scheduled, notion_created_time, notion_last_edited_time)\nVALUES (\n  $1, $2::vector, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11, $12)\nON CONFLICT (notion_id)\nDO UPDATE SET\n  content = EXCLUDED.content,\n  embedding = EXCLUDED.embedding,\n  title = EXCLUDED.title,\n  priority_level = EXCLUDED.priority_level,\n  energy_level = EXCLUDED.energy_level,\n  due_date = EXCLUDED.due_date,\n  metadata = EXCLUDED.metadata,\n  entity_type = EXCLUDED.entity_type,\n  scheduled = EXCLUDED.scheduled,\nnotion_created_time =\n  EXCLUDED.notion_created_time,\n  notion_last_edited_time = EXCLUDED.notion_last_edited_time;",
+        "options": {
+          "queryReplacement": "={{ $json.params }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        16,
+        336
+      ],
+      "id": "f2e4fe56-04c5-4c69-9e90-5e685a0e2808",
+      "name": "Upsert to Postgres (Projects)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO documents (\n  content, embedding, title, priority_level, energy_level,\n  due_date, metadata, notion_id, entity_type, notion_created_time, notion_last_edited_time\n)\nVALUES (\n  $1, $2::vector, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11\n)\nON CONFLICT (notion_id)\nDO UPDATE SET\n  content = EXCLUDED.content,\n  embedding = EXCLUDED.embedding,\n  title = EXCLUDED.title,\n  priority_level = EXCLUDED.priority_level,\n  energy_level = EXCLUDED.energy_level,\n  due_date = EXCLUDED.due_date,\n  metadata = EXCLUDED.metadata,\n  entity_type = EXCLUDED.entity_type,\nnotion_created_time =\n  EXCLUDED.notion_created_time,\n  notion_last_edited_time = EXCLUDED.notion_last_edited_time;",
+        "options": {
+          "queryReplacement": "={{ $json.params }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        720
+      ],
+      "id": "ce453416-c590-40fc-8012-76b95eab9a87",
+      "name": "Upsert to Postgres (Habits)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO documents (\n  content, embedding, title, priority_level, energy_level,\n  due_date, metadata, notion_id, entity_type, notion_created_time, notion_last_edited_time\n)\nVALUES (\n  $1, $2::vector, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11\n)\nON CONFLICT (notion_id)\nDO UPDATE SET\n  content = EXCLUDED.content,\n  embedding = EXCLUDED.embedding,\n  title = EXCLUDED.title,\n  priority_level = EXCLUDED.priority_level,\n  energy_level = EXCLUDED.energy_level,\n  due_date = EXCLUDED.due_date,\n  metadata = EXCLUDED.metadata,\n  entity_type = EXCLUDED.entity_type,\nnotion_created_time =\n  EXCLUDED.notion_created_time,\n  notion_last_edited_time = EXCLUDED.notion_last_edited_time;",
+        "options": {
+          "queryReplacement": "={{ $json.params }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        16,
+        1104
+      ],
+      "id": "e0f47126-d0c4-4416-9e66-9e338685ba65",
+      "name": "Upsert to Postgres (Incubate)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO documents (\n  content, embedding, title, priority_level, energy_level,\n  due_date, metadata, notion_id, entity_type, notion_created_time, notion_last_edited_time\n)\nVALUES (\n  $1, $2::vector, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11\n)\nON CONFLICT (notion_id)\nDO UPDATE SET\n  content = EXCLUDED.content,\n  embedding = EXCLUDED.embedding,\n  title = EXCLUDED.title,\n  priority_level = EXCLUDED.priority_level,\n  energy_level = EXCLUDED.energy_level,\n  due_date = EXCLUDED.due_date,\n  metadata = EXCLUDED.metadata,\n  entity_type = EXCLUDED.entity_type,\nnotion_created_time =\n  EXCLUDED.notion_created_time,\n  notion_last_edited_time = EXCLUDED.notion_last_edited_time;",
+        "options": {
+          "queryReplacement": "={{ $json.params }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        16,
+        1488
+      ],
+      "id": "7570faf9-971f-4759-b7c4-c8b1d692829f",
+      "name": "Upsert to Postgres (Inbox)"
+    },
+    {
+      "parameters": {
+        "content": "# What this workflow does\n## Syncs a Notion productivity database to a PostgreSQL vector store. It polls Notion every night at 2 AM, detects updated pages, classifies each by type (Action, Project, Habit, Incubate, Inbox), builds a natural-language description of each item with its relationships, generates a semantic embedding via OpenAI, and upserts the result into a documents table with pgvector. This enables AI-powered semantic search over the user's personal task system.",
+        "height": 560,
+        "width": 752,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2480,
+        16
+      ],
+      "id": "806064d6-8aad-488b-9381-0c559799cee2",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Notion Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extractor relation for Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extractor relation for Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not Anchor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Extractor relation for Incubate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extractor relation for Inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data for projects": {
+      "main": [
+        [
+          {
+            "node": "Generate embeddings (Projects)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor relation for Project": {
+      "main": [
+        [
+          {
+            "node": "Has relations?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not Anchor": {
+      "main": [
+        [
+          {
+            "node": "Extractor relation for Habit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor relation for Habit": {
+      "main": [
+        [
+          {
+            "node": "Has relations?2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor relation for Action": {
+      "main": [
+        [
+          {
+            "node": "Has relations?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data for habits": {
+      "main": [
+        [
+          {
+            "node": "Generate embeddings (Habits)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data for Incubate": {
+      "main": [
+        [
+          {
+            "node": "Generate embeddings (Incubate)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor relation for Inbox": {
+      "main": [
+        [
+          {
+            "node": "Has relations?4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data for Inbox": {
+      "main": [
+        [
+          {
+            "node": "Generate embeddings (Inbox)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor relation for Incubate": {
+      "main": [
+        [
+          {
+            "node": "Has relations?3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data for Actions": {
+      "main": [
+        [
+          {
+            "node": "Generate embeddings (Actions)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch related pages (Actions)": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch related pages (Projects)": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch related pages (Habits)": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for habits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch related pages (Incubate)": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for Incubate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch related (Inbox)": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for Inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate embeddings (Projects)": {
+      "main": [
+        [
+          {
+            "node": "Attach embeddings (Projects)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate embeddings (Actions)": {
+      "main": [
+        [
+          {
+            "node": "Attach embeddings (Actions)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate embeddings (Habits)": {
+      "main": [
+        [
+          {
+            "node": "Attach embeddings (Habits)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate embeddings (Incubate)": {
+      "main": [
+        [
+          {
+            "node": "Attach embeddings (Incubate)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate embeddings (Inbox)": {
+      "main": [
+        [
+          {
+            "node": "Attach embeddings (Inbox)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format DB params (Projects)": {
+      "main": [
+        [
+          {
+            "node": "Upsert to Postgres (Projects)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format DB params (Actions)": {
+      "main": [
+        [
+          {
+            "node": "Upsert to Postgres (Actions)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format DB params (Habits)": {
+      "main": [
+        [
+          {
+            "node": "Upsert to Postgres (Habits)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format DB params (Incubate)": {
+      "main": [
+        [
+          {
+            "node": "Upsert to Postgres (Incubate)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format DB params (Inbox)": {
+      "main": [
+        [
+          {
+            "node": "Upsert to Postgres (Inbox)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has relations?": {
+      "main": [
+        [
+          {
+            "node": "Fetch related pages (Actions)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Empty relations fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has relations?1": {
+      "main": [
+        [
+          {
+            "node": "Fetch related pages (Projects)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Empty relations fallback1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has relations?2": {
+      "main": [
+        [
+          {
+            "node": "Fetch related pages (Habits)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Empty relations fallback2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has relations?3": {
+      "main": [
+        [
+          {
+            "node": "Fetch related pages (Incubate)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Empty relations fallback3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has relations?4": {
+      "main": [
+        [
+          {
+            "node": "Fetch related (Inbox)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Empty relations fallback4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty relations fallback": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty relations fallback1": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty relations fallback2": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for habits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty relations fallback3": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for Incubate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty relations fallback4": {
+      "main": [
+        [
+          {
+            "node": "Prepare data for Inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach embeddings (Projects)": {
+      "main": [
+        [
+          {
+            "node": "Format DB params (Projects)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach embeddings (Incubate)": {
+      "main": [
+        [
+          {
+            "node": "Format DB params (Incubate)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach embeddings (Inbox)": {
+      "main": [
+        [
+          {
+            "node": "Format DB params (Inbox)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach embeddings (Habits)": {
+      "main": [
+        [
+          {
+            "node": "Format DB params (Habits)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach embeddings (Actions)": {
+      "main": [
+        [
+          {
+            "node": "Format DB params (Actions)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9365c429-f0e6-4256-8c68-270166e2feb6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c870bd7539f9a2bc5fc0ada3b6a85635bbf1489c6c06ca95b23aaa62cd86e259"
+  },
+  "id": "vAykcfziIMcmylkr",
+  "tags": [
+    {
+      "updatedAt": "2026-06-01T19:30:50.987Z",
+      "createdAt": "2026-06-01T19:30:50.987Z",
+      "id": "wGMWPMKyMmT0I1In",
+      "name": "Portfolio"
+    }
+  ]
+}

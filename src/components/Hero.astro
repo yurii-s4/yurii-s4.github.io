@@ -1,0 +1,21 @@
+---
+import SectionNode from './SectionNode.astro';
+import { profile } from '../data/site';
+
+const [first, ...rest] = profile.name.split(' ');
+const last = rest.join(' ');
+---
+
+<SectionNode eyebrow="TRIGGER ▸ portfolio.opened" id="top" class="hero">
+  {profile.available && (
+    <span class="pill"><span class="blip"></span>{profile.availabilityText}</span>
+  )}
+  <h1>{first} <span class="accent">{last}</span></h1>
+  <p class="role">{profile.role}</p>
+  <p class="lede">{profile.summary}</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="#workflows">See the workflows ↓</a>
+    <a class="btn btn-ghost" href={profile.links.telegram} target="_blank" rel="noopener">Telegram ↗</a>
+    <a class="btn btn-ghost" href={profile.links.github} target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</SectionNode>

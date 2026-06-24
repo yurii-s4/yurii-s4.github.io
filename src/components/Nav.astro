@@ -1,0 +1,75 @@
+---
+import { profile, workflows } from '../data/site';
+---
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a href="#top" class="brand"><span class="glyph"></span>{profile.name}</a>
+    <div class="nav-links">
+      <a href="#about">about</a>
+      <a href="#stack">stack</a>
+
+      <div class="nav-dropdown">
+        <button
+          type="button"
+          class="nav-dropdown-trigger"
+          id="workflows-trigger"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="workflows-menu"
+        >
+          workflows<span class="caret" aria-hidden="true">
+            <svg viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+        </button>
+        <div class="nav-dropdown-menu" id="workflows-menu" role="menu" aria-labelledby="workflows-trigger">
+          {workflows.map((wf) => (
+            <a href={`#wf-${wf.id}`} role="menuitem" class="nav-dropdown-item">{wf.title}</a>
+          ))}
+        </div>
+      </div>
+
+      <a href="#contact">contact</a>
+    </div>
+  </div>
+</nav>
+
+<script>
+  // ==========================================================================
+  // Accessible click-toggle dropdown (not hover-only — hover breaks on touch).
+  // DESIRED OUTPUT: clicking the trigger toggles aria-expanded + reveals the
+  //   menu; Escape and outside-click close it; clicking an item navigates
+  //   and closes the menu.
+  // DEBUG: open with ?debug to log open/close/navigate events.
+  // ==========================================================================
+  const DEBUG = new URLSearchParams(location.search).has('debug');
+  const log = (...a: unknown[]) => DEBUG && console.log('[nav]', ...a);
+
+  const trigger = document.getElementById('workflows-trigger');
+  const menu = document.getElementById('workflows-menu');
+
+  if (trigger && menu) {
+    const isOpen = () => trigger.getAttribute('aria-expanded') === 'true';
+    const open = () => { trigger.setAttribute('aria-expanded', 'true'); menu.classList.add('open'); log('open'); };
+    const close = () => { trigger.setAttribute('aria-expanded', 'false'); menu.classList.remove('open'); log('close'); };
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isOpen() ? close() : open();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (isOpen() && !trigger.contains(e.target as Node) && !menu.contains(e.target as Node)) close();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen()) { close(); trigger.focus(); }
+    });
+
+    menu.querySelectorAll<HTMLAnchorElement>('a').forEach((a) =>
+      a.addEventListener('click', () => { log('navigate', a.getAttribute('href')); close(); })
+    );
+  }
+</script>

@@ -1,0 +1,12 @@
+---
+import SectionNode from './SectionNode.astro';
+import { profile } from '../data/site';
+---
+
+<SectionNode eyebrow="SET ▸ about" id="about" class="about">
+  <h2>I turn manual, repetitive work into reliable automated workflows.</h2>
+  <p>{profile.summary}</p>
+  <p style="font-family: var(--mono); color: var(--muted); font-size: 0.85rem; margin-top: 18px;">
+    {profile.location}
+  </p>
+</SectionNode>

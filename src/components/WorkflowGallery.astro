@@ -1,0 +1,169 @@
+---
+import SectionNode from './SectionNode.astro';
+import { workflows } from '../data/site';
+import { withBase } from '../utils/url';
+---
+
+<SectionNode eyebrow="EXECUTE ▸ workflows" id="workflows">
+  <div class="wf-grid">
+    {workflows.map((wf) => (
+      <article class="wf-card" id={`wf-${wf.id}`}>
+        <div class="wf-head">
+          <h3>{wf.title}</h3>
+          <div class="wf-meta">
+            <div><span class="k">Problem</span><span class="v">{wf.problem}</span></div>
+            <div><span class="k">Solution</span><span class="v">{wf.solution}</span></div>
+            <div><span class="k">Result</span><span class="v">{wf.result}</span></div>
+          </div>
+        </div>
+        <div class="chips">
+          {wf.integrations.map((i) => <span class="chip">{i}</span>)}
+        </div>
+        <div class="wf-canvas" data-workflow-src={withBase(wf.workflowSrc)}>
+          <div class="wf-loading" role="img" aria-label="Loading workflow preview">
+            <span class="spin"></span>
+            <span>loading workflow<span class="wf-slow"> — this graph is large, hang tight</span></span>
+          </div>
+        </div>
+      </article>
+    ))}
+  </div>
+</SectionNode>
+
+<script>
+  // ==========================================================================
+  // Live n8n workflow mounting — lazy, one canvas at a time.
+  //
+  // DESIRED OUTPUT: each .wf-canvas shows a spinner overlay immediately, then
+  //   the real graph appears with NO grey gap in between.
+  //
+  //   Earlier version's bug: it removed the spinner as soon as <n8n-demo> was
+  //   appended to the DOM, but appending the element only starts the
+  //   component's OWN async render (it loads an internal cross-origin
+  //   iframe). That left a visible grey blank box between "spinner gone" and
+  //   "graph visible" — reported by the user as "grey screen, then canvas,
+  //   then workflow". Fix: keep the spinner as an absolutely-positioned
+  //   overlay (z-index above the canvas) and only remove it once the
+  //   component's internal iframe fires its own 'load' event (plus a short
+  //   grace delay for the iframe's internal JS to actually draw the graph),
+  //   with a hard timeout so a user is never stuck staring at a spinner.
+  //
+  // DEBUG CHECKPOINTS (open the page with ?debug to log them):
+  //   1. component defined        -> customElements.get('n8n-demo') is truthy
+  //   2. json fetched + parses    -> no throw, node count > 0
+  //   2.5 internal iframe found   -> shadowRoot iframe located (polling)
+  //   2.6 internal iframe loaded  -> iframe 'load' event fired, grace delay running
+  //   3. node count matches src   -> rendered graph == JSON nodes length
+  //   slow. >8s without resolving -> 'slow' class added, loader shows hint
+  //   fallback. hard ceiling hit  -> overlay removed anyway after FALLBACK_MS
+  // ==========================================================================
+  const DEBUG = new URLSearchParams(location.search).has('debug');
+  const log = (...a: unknown[]) => DEBUG && console.log('[wf]', ...a);
+  const SLOW_MS = 8000;       // research rule of thumb: ~5-8s before a stuck loader feels broken
+  const GRACE_MS = 500;       // buffer after iframe 'load' for its internal JS to actually draw the graph
+  const FALLBACK_MS = 6000;   // hard ceiling: never leave the overlay up forever if our detection fails
+  const POLL_MS = 100;
+  const POLL_MAX_ATTEMPTS = 30; // ~3s of polling for the shadow-DOM iframe to exist
+
+  function whenDefined(): Promise<void> {
+    if (customElements.get('n8n-demo')) { log('checkpoint 1: component already defined'); return Promise.resolve(); }
+    return customElements.whenDefined('n8n-demo').then(() => log('checkpoint 1: component defined'));
+  }
+
+  async function mount(canvas: HTMLElement) {
+    const src = canvas.dataset.workflowSrc;
+    if (!src) return;
+    const loadingEl = canvas.querySelector<HTMLElement>('.wf-loading');
+    canvas.classList.add('loading');
+    canvas.setAttribute('aria-busy', 'true');
+
+    let settled = false;
+    const finish = (reason: string) => {
+      if (settled) return;
+      settled = true;
+      log('overlay removed —', reason);
+      canvas.classList.remove('loading', 'slow');
+      canvas.removeAttribute('aria-busy');
+      clearTimeout(slowTimer);
+      clearTimeout(fallbackTimer);
+      loadingEl?.remove();
+    };
+
+    const slowTimer = window.setTimeout(() => {
+      canvas.classList.add('slow');
+      log('checkpoint slow: still loading after', SLOW_MS, 'ms for', src);
+    }, SLOW_MS);
+
+    // hard ceiling, started immediately so it covers the whole load — JSON
+    // fetch + iframe render combined should never legitimately take this long
+    const fallbackTimer = window.setTimeout(() => finish('fallback timeout hit'), FALLBACK_MS);
+
+    try {
+      const res = await fetch(src);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const parsed = JSON.parse(text); // checkpoint 2: must not throw
+      log('checkpoint 2: parsed', src, 'nodes:', parsed?.nodes?.length ?? 0);
+
+      await whenDefined();
+
+      const el = document.createElement('n8n-demo');
+      el.setAttribute('workflow', text);
+      el.setAttribute('tidyup', 'true');
+      el.setAttribute('collapseformobile', 'false');
+      canvas.appendChild(el); // loading overlay stays on top until the iframe below is actually ready
+
+      // poll the shadow DOM for the component's internal iframe — it doesn't
+      // exist the instant we append the element, the component creates it
+      // asynchronously
+      let attempts = 0;
+      const poll = window.setInterval(() => {
+        attempts++;
+        const iframe = el.shadowRoot?.querySelector<HTMLIFrameElement>('#int_iframe, iframe');
+        if (iframe) {
+          clearInterval(poll);
+          log('checkpoint 2.5: internal iframe found after', attempts * POLL_MS, 'ms');
+          iframe.addEventListener('load', () => {
+            log('checkpoint 2.6: internal iframe load event fired, waiting', GRACE_MS, 'ms grace period');
+            setTimeout(() => finish('iframe load event + grace period'), GRACE_MS);
+          }, { once: true });
+        } else if (attempts >= POLL_MAX_ATTEMPTS) {
+          clearInterval(poll);
+          log('gave up polling for internal iframe after', attempts * POLL_MS, 'ms — relying on fallback timeout');
+        }
+      }, POLL_MS);
+
+      if (DEBUG) {
+        // checkpoint 3: give the graph a beat to render, then count nodes
+        setTimeout(() => {
+          const rendered = el.shadowRoot?.querySelectorAll('[data-name], .node').length;
+          log('checkpoint 3: source nodes', parsed?.nodes?.length, '| rendered ~', rendered ?? 'n/a');
+        }, 1200);
+      }
+    } catch (err) {
+      clearTimeout(slowTimer);
+      clearTimeout(fallbackTimer);
+      log('FAILED for', src, err);
+      // BUG FIX (kept from before): must clear 'loading'/'slow' here too, or
+      // the canvas stays dimmed forever even though it's showing an error.
+      canvas.classList.remove('loading', 'slow');
+      canvas.removeAttribute('aria-busy');
+      canvas.innerHTML =
+        '<div class="wf-error" role="alert">workflow preview unavailable — open ?debug for details</div>';
+    }
+  }
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          io.unobserve(e.target);
+          mount(e.target as HTMLElement);
+        }
+      }
+    },
+    { rootMargin: '200px' } // start a little before it's on screen
+  );
+
+  document.querySelectorAll<HTMLElement>('.wf-canvas').forEach((c) => io.observe(c));
+</script>

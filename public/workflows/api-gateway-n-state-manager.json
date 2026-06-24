@@ -1,0 +1,1710 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "028280f5-db06-4167-90b3-d89d4ac99bac"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c0c89d99-7bff-44d5-89e3-aeafccbc1668",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.voice.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -2256,
+        2032
+      ],
+      "id": "adeafbc2-c8ad-4896-aea2-08eab090fc2b",
+      "name": "Switch (text/voice)"
+    },
+    {
+      "parameters": {
+        "content": "# TELEGRAM ROUTING\n",
+        "height": 916,
+        "width": 2012,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3104,
+        1600
+      ],
+      "id": "76e3dac9-1c5c-4e30-8cb5-9e1d5bc382da",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1792,
+        2128
+      ],
+      "id": "36e2685e-3292-4537-a5eb-4ae33d133119",
+      "name": "OpenAI (audio)",
+      "credentials": {
+        "openAiApi": {
+          "id": "ivhvfR2OOYsCUZEq",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').item.json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2016,
+        2128
+      ],
+      "id": "d7a97d60-1095-430a-839d-dbf7ae5e5f63",
+      "name": "Download voice",
+      "webhookId": "9b55b710-0bc2-488c-9cf1-279536af2242",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b0b68173-512a-48e9-9dcd-2e844bd3aee8",
+              "leftValue": "={{ $('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id }}",
+              "rightValue": 123456789,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -2480,
+        1936
+      ],
+      "id": "29ac51e9-ff3b-4d2c-907d-609815942533",
+      "name": "Filter ID"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e86f18ef-28ac-42ca-bef6-459a8c8325b1",
+                    "leftValue": "={{ $('Get User State').item.json.active_agent }}",
+                    "rightValue": "registration_awaiting_name",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Save Name"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Get User State').item.json.active_agent }}",
+                    "rightValue": "survey",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "643069f1-3ac0-4241-bd16-ad3dfa28e663"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "survey"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fb18ab91-77a8-43ba-9a43-f1965de0a02c",
+                    "leftValue": "={{ $('Get User State').item.json.active_agent }}",
+                    "rightValue": "social",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "social"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ccb0d0d2-20c9-474a-b9cc-4c5a869d65c2",
+                    "leftValue": "={{ $('Get User State').item.json.active_agent }}",
+                    "rightValue": "metric",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "metric"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "65bdf684-a668-4247-b2cf-bf328b67ed32",
+                    "leftValue": "={{ $('Get User State').item.json.active_agent }}",
+                    "rightValue": "search",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "search"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Default"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        1936
+      ],
+      "id": "9664ec6d-c3b5-411a-a3dd-9f3928965b9b",
+      "name": "Agent Router"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3741d45f-c505-4eb1-8ef4-c9a2e0057be8",
+              "leftValue": "={{ Object.keys($('Get User State').item.json).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -640,
+        2272
+      ],
+      "id": "28b207d1-8116-497a-adc9-fde3730b5a37",
+      "name": "Is User Registered?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Вітаю!👋 Схоже, ви тут вперше. Давайте зареєструємо вас. Як я можу до вас звертатись? (Будь ласка, напишіть ваше ім'я)",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        2288
+      ],
+      "id": "1a2933a9-95f4-4098-bc2a-3b0ac3456c82",
+      "name": "Welcome",
+      "webhookId": "bbac8ea3-f721-4b8b-8e8e-5bed5ac6d4b9",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Дуже приємно, {{ $('Telegram Trigger').item.json.message.text }}! ✨ Реєстрацію завершено. Чим можу допомогти?",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Агент Опитування (Survey)",
+                    "additionalFields": {
+                      "callback_data": "start_survey"
+                    }
+                  },
+                  {
+                    "text": "Агент соціальних взаємодій",
+                    "additionalFields": {
+                      "callback_data": "start_social"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        432,
+        2288
+      ],
+      "id": "b0a12199-586f-4798-8564-f938045fa71c",
+      "name": "Registration confirmation",
+      "webhookId": "e801e184-3474-4054-9889-f84e85ad211d",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('Get User State').item.json.user_name ? 'З поверненням, ' + $('Get User State').item.json.user_name + '!' : 'Вітаю знову!' }}\\n\\nОберіть, будь ласка, з ким ви хотіли б поспілкуватися:",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Агент Опитування (Survey)",
+                    "additionalFields": {
+                      "callback_data": "start_survey"
+                    }
+                  },
+                  {
+                    "text": "Агент соціальних взаємодій",
+                    "additionalFields": {
+                      "callback_data": "start_social"
+                    }
+                  },
+                  {
+                    "text": "🔴 Завершити розмову з агентом",
+                    "additionalFields": {
+                      "callback_data": "end_session"
+                    }
+                  },
+                  {
+                    "text": "📊Метрики",
+                    "additionalFields": {
+                      "callback_data": "start_metric"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        1632
+      ],
+      "id": "d6c81bbe-49ed-4a40-af54-f057d70e1d67",
+      "name": "Send Welcome Menu",
+      "webhookId": "b4c6d722-15bb-4f37-bba6-fd76a50c0356",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query.data }}",
+                    "rightValue": "start_survey",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b37a6b92-f721-46f2-aa05-1149f6e183f6"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "go_to_survey"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3bd2f2fe-99e4-4447-850e-d08d2c330199",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query.data }}",
+                    "rightValue": "start_social",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "go_to_social"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "dd9fa0b4-5d8d-41c1-8c2d-07706d4cd389",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query.data }}",
+                    "rightValue": "start_metric",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "go_to_metric"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "04c3ced5-5a77-49fa-8f4d-356bf9cb65fc",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query.data }}",
+                    "rightValue": "start_search",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "go_to_search"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "aba1d0aa-9612-4fcc-a896-6dfaf8e234e5",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query.data }}",
+                    "rightValue": "end_session",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "go_to_exit"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -448,
+        784
+      ],
+      "id": "5007dfde-321d-44f9-86a4-39c841793e7c",
+      "name": "Callback Router"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst updatedItems = items.map((item) => {\n  let timestamp;\n  let objectToUpdate; // Object where we will update the date\n\n  // Check if the data is from a button press (callback_query)\n  if (item.json.callback_query) {\n    // Get data from the message attached to the button\n    timestamp = item.json.callback_query.message.date;\n    objectToUpdate = item.json.callback_query.message;\n  }\n  // Otherwise, check if it's a regular message\n  else if (item.json.message) {\n    timestamp = item.json.message.date;\n    objectToUpdate = item.json.message;\n  }\n  // If it's an unknown data type, just return it unchanged\n  else {\n    return item;\n  }\n\n  // If no date was found, also return unchanged\n  if (!timestamp) {\n    return item;\n  }\n\n  // Convert Unix timestamp (seconds) to a Date object (milliseconds)\n  const date = new Date(timestamp * 1000);\n\n  // Format the date for Kyiv timezone into YYYY-MM-DDTHH:mm:ss format\n  const formattedDate = date\n    .toLocaleString('sv-SE', { timeZone: 'Europe/Kyiv' })\n    .replace(' ', 'T');\n\n  // Overwrite the original date with the formatted value in the correct object\n  objectToUpdate.date = formattedDate;\n  \n  return item;\n});\n\nreturn updatedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2720,
+        1936
+      ],
+      "id": "ecb5ca47-5031-4ffc-972f-f9af458df93a",
+      "name": "Date format (inline)"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "=/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "id": "3e45b440-59c5-41a6-bafa-6232cb5d2d30"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "show_menu"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Default"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -16,
+        1776
+      ],
+      "id": "6acc6a38-9cca-46e8-b18e-0ad75d5f5c1b",
+      "name": "Action Router"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "users",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ parseInt($('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        2272
+      ],
+      "id": "7d109a1e-a618-4ef2-9498-cb9856d3056e",
+      "name": "Get User State",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "LERNRPzuhBTEa3ge",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "users",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "chat_id",
+              "fieldValue": "={{ parseInt($('Telegram Trigger').item.json.message.chat.id) }}"
+            },
+            {
+              "fieldId": "is_registered",
+              "fieldValue": "false"
+            },
+            {
+              "fieldId": "active_agent",
+              "fieldValue": "registration_awaiting_name"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        2288
+      ],
+      "id": "82f6d9a0-f481-48c0-b817-e801dbb86fa5",
+      "name": "Create New User",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LERNRPzuhBTEa3ge",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "useCustomSchema": true,
+        "operation": "update",
+        "tableId": "users",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ parseInt($('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id) }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_name",
+              "fieldValue": "={{ $('Telegram Trigger').item.json.message.text }}"
+            },
+            {
+              "fieldId": "is_registered",
+              "fieldValue": "true"
+            },
+            {
+              "fieldId": "active_agent",
+              "fieldValue": "main"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        208,
+        2288
+      ],
+      "id": "22de5341-fa2f-45d7-8479-25a52ad43599",
+      "name": "Update User on Registration",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LERNRPzuhBTEa3ge",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ parseInt($('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id) }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "active_agent",
+              "fieldValue": "main"
+            },
+            {
+              "fieldId": "last_seen",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        48,
+        1248
+      ],
+      "id": "76f5dbec-8cdb-4d29-89ec-8bad6ad1b44a",
+      "name": "Set State to Main",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LERNRPzuhBTEa3ge",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ parseInt($('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id) }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "active_agent",
+              "fieldValue": "social"
+            },
+            {
+              "fieldId": "last_seen",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        48,
+        576
+      ],
+      "id": "e0ed6885-e6c5-4ff0-98c5-7cff6d66830d",
+      "name": "Set State to Social",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LERNRPzuhBTEa3ge",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ parseInt($('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id) }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "active_agent",
+              "fieldValue": "survey"
+            },
+            {
+              "fieldId": "last_seen",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        48,
+        352
+      ],
+      "id": "a29911f2-d62c-4b82-a9a0-b951f2c683dd",
+      "name": "Set State to Survey",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LERNRPzuhBTEa3ge",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id }}",
+        "text": "Ви перейшли в режим розмови з Агентом опитування.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        352
+      ],
+      "id": "b33fe743-8825-4900-a6f3-d9fc6645959a",
+      "name": "Go to Survey",
+      "webhookId": "44ded2e9-67ff-4873-8997-5d13da959c5a",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ parseInt($('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id) }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "active_agent",
+              "fieldValue": "metric"
+            },
+            {
+              "fieldId": "last_seen",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        48,
+        800
+      ],
+      "id": "93c94592-f49c-4fe9-887e-b89d68b311c7",
+      "name": "Set State to Metric",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LERNRPzuhBTEa3ge",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ parseInt($('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id) }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "active_agent",
+              "fieldValue": "search"
+            },
+            {
+              "fieldId": "last_seen",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        48,
+        1024
+      ],
+      "id": "090140d8-b602-4637-b92e-39c31494bf59",
+      "name": "Set State to Search",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LERNRPzuhBTEa3ge",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "#  STATE MANAGEMENT & ROUTING\n---\n#  LOGIC\n## Syncs Telegram button interactions with Supabase DB to manage user states.\n\n#  ACTION\n## Updates *state* in the database and routes the UI (Survey, Social, Search, etc.).\n\n#  CLEANUP\n## Automatically deletes survey history via SQL query when returning to the Main menu.",
+        "height": 1552,
+        "width": 1440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -592,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "7fc85dd2-15ed-44b6-b090-8dfafd266149",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "#  STATE MANAGEMENT & ROUTING",
+        "height": 912,
+        "width": 2016,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -992,
+        1600
+      ],
+      "typeVersion": 1,
+      "id": "e8de6e93-86e4-4ea6-8c7c-c5757e373a2e",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM chat_history\nWHERE session_id = 'survey_memory_{{ parseInt($('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id) }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        272,
+        1248
+      ],
+      "id": "4b2e5517-8a78-49cc-adab-8adde5f5fda1",
+      "name": "Delete Survey chat history",
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract text from the direct input (e.g., voice-to-text node payload)\nconst voiceData = $input?.first()?.json?.text\n\n// Fallback to the original Telegram text message if no voice text is present\nconst textData = $('Telegram Trigger').first()?.json?.message?.text\n\n// Return a unified text property combining both potential sources\nreturn {text: voiceData || textData}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1632,
+        1888
+      ],
+      "id": "52ef2210-1568-4a95-b35b-e5f0080bdf94",
+      "name": "Get Message Text"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id }}",
+        "text": "Ви перейшли до Агента запису соціальних взаємодій.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        576
+      ],
+      "id": "0cce6eb4-3c25-4504-b455-b64d678e6c61",
+      "name": "Go to Social",
+      "webhookId": "dd2573ac-0468-4db0-8164-d7cf626b27d4",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id }}",
+        "text": "Ви перейшли до Агента запису метрик.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        800
+      ],
+      "id": "2b3b5f0e-3030-49d8-b45a-68784ea116b2",
+      "name": "Go to Metric",
+      "webhookId": "f04ca4c1-64ec-418c-9260-c5bec34f7709",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id }}",
+        "text": "Ви перейшли до Агента пошуку.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        1024
+      ],
+      "id": "3cae0d29-14ed-4f75-b518-fe90257971ff",
+      "name": "Go to Search",
+      "webhookId": "5382b5ba-b2d7-44a4-be27-95d03d1129e5",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id }}",
+        "text": "Ви повернулися до головного агента. Розмова з попереднім агентом очищена. Чим можу допомогти?",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "📝Опитування",
+                    "additionalFields": {
+                      "callback_data": "start_survey"
+                    }
+                  },
+                  {
+                    "text": "💭Cоц. взаємодії",
+                    "additionalFields": {
+                      "callback_data": "start_social"
+                    }
+                  },
+                  {
+                    "text": "📊Метрики",
+                    "additionalFields": {
+                      "callback_data": "start_metric"
+                    }
+                  },
+                  {
+                    "text": "🔍Пошук",
+                    "additionalFields": {
+                      "callback_data": "start_search"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        1248
+      ],
+      "id": "107e5568-dcd4-43df-91e5-9a9a4e735fd4",
+      "name": "To main Agent",
+      "webhookId": "82c95eea-568b-481e-87a1-90ca3ee6a063",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9e59603e-7ac5-4da3-8ab2-ebcf53a3cda5",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query.data }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "button_pressed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "id": "3e44a9a4-ceca-4a16-b234-0469d16429ac"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "start_command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d6b7d30f-f575-4810-9ce6-91ff02e94f15",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "/survey",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "survey_command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c00ebf03-52ee-495d-9866-68bda8407bde",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "/social",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "social_command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5fbdf289-89b8-409c-9007-47c5aee16cf2",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "/exit",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "exit_command"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Default"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1456,
+        1808
+      ],
+      "id": "62a9365c-f950-4cec-b974-ffb4c87d0c9e",
+      "name": "Command Router"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -2960,
+        1936
+      ],
+      "id": "f8ba7033-810c-442f-ad23-1d39e958faca",
+      "name": "Telegram Trigger",
+      "webhookId": "41adf5f1-6352-4497-98a9-cc1cd828d7b7",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Switch (text/voice)": {
+      "main": [
+        [
+          {
+            "node": "Get Message Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI (audio)": {
+      "main": [
+        [
+          {
+            "node": "Get Message Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download voice": {
+      "main": [
+        [
+          {
+            "node": "OpenAI (audio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter ID": {
+      "main": [
+        [
+          {
+            "node": "Switch (text/voice)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Callback Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Router": {
+      "main": [
+        [
+          {
+            "node": "Update User on Registration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "Is User Registered?": {
+      "main": [
+        [
+          {
+            "node": "Action Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Welcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Welcome": {
+      "main": [
+        [
+          {
+            "node": "Create New User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Callback Router": {
+      "main": [
+        [
+          {
+            "node": "Set State to Survey",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set State to Social",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set State to Metric",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set State to Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set State to Main",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date format (inline)": {
+      "main": [
+        [
+          {
+            "node": "Filter ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action Router": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Menu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agent Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User State": {
+      "main": [
+        [
+          {
+            "node": "Is User Registered?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User on Registration": {
+      "main": [
+        [
+          {
+            "node": "Registration confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set State to Main": {
+      "main": [
+        [
+          {
+            "node": "Delete Survey chat history",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set State to Social": {
+      "main": [
+        [
+          {
+            "node": "Go to Social",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set State to Survey": {
+      "main": [
+        [
+          {
+            "node": "Go to Survey",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set State to Metric": {
+      "main": [
+        [
+          {
+            "node": "Go to Metric",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set State to Search": {
+      "main": [
+        [
+          {
+            "node": "Go to Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Survey chat history": {
+      "main": [
+        [
+          {
+            "node": "To main Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Message Text": {
+      "main": [
+        [
+          {
+            "node": "Command Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Command Router": {
+      "main": [
+        [
+          {
+            "node": "Callback Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User State",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set State to Survey",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set State to Social",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set State to Main",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Date format (inline)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c870bd7539f9a2bc5fc0ada3b6a85635bbf1489c6c06ca95b23aaa62cd86e259"
+  }
+}

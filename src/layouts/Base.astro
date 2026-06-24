@@ -1,0 +1,81 @@
+---
+import '../styles/global.css';
+import { profile } from '../data/site';
+import { withBase } from '../utils/url';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = `${profile.name} — ${profile.role}`,
+  description = profile.summary,
+} = Astro.props;
+
+// Google Analytics 4 Measurement ID, e.g. "G-XXXXXXXXXX".
+// Read from the PUBLIC_GA_ID env var (PUBLIC_ prefix = exposed to the browser,
+// which is correct: a Measurement ID is not a secret). When unset (local dev,
+// PRs), the snippet below is skipped entirely so dev traffic isn't tracked.
+const GA_ID = import.meta.env.PUBLIC_GA_ID;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    {/* Google Analytics (gtag.js). Only emitted when PUBLIC_GA_ID is set,
+        so it ships in production but stays out of local dev / PR builds.
+        is:inline keeps Astro from bundling/transforming these tags. */}
+    {GA_ID && (
+      <>
+        <script
+          is:inline
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+        ></script>
+        <script is:inline define:vars={{ GA_ID }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', GA_ID);
+        </script>
+      </>
+    )}
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- n8n workflow-preview web component.
+         is:inline keeps Astro from processing these external scripts.
+         The component registers <n8n-demo> asynchronously; elements we create
+         before it loads will upgrade automatically once it's defined. -->
+    <script
+      is:inline
+      src="https://cdn.jsdelivr.net/npm/@webcomponents/webcomponentsjs@2.0.0/webcomponents-loader.js"
+    ></script>
+    <script is:inline src="https://www.unpkg.com/lit@2.0.0-rc.2/polyfill-support.js"></script>
+    <script
+      is:inline
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@n8n_io/n8n-demo-component/n8n-demo.bundled.js"
+    ></script>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

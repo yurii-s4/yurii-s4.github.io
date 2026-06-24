@@ -1,0 +1,21 @@
+---
+interface Props {
+  /** n8n-node-style label, e.g. "TRIGGER", "SET · about" */
+  eyebrow: string;
+  /** anchor id for nav links */
+  id?: string;
+  class?: string;
+}
+const { eyebrow, id, class: cls = '' } = Astro.props;
+---
+
+<section class:list={['node-row', cls]} id={id}>
+  <div class="rail">
+    <span class="rail-line"></span>
+    <span class="port"></span>
+  </div>
+  <div class="node-card">
+    <p class="eyebrow">{eyebrow}</p>
+    <slot />
+  </div>
+</section>

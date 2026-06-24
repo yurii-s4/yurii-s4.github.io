@@ -1,0 +1,1515 @@
+{
+  "name": "AI RAG Agent with Hybrid Postgres Search",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "userMessage"
+            },
+            {
+              "name": "chatID"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -5952,
+        128
+      ],
+      "id": "30ece1c6-281a-4318-a0a9-89705f648d23",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const user_query = $('When Executed by Another Workflow').first().json.userMessage;\nconst history = $items(\"Get Chat History1\").map(item => `${item.json.role}: ${item.json.content}`).reverse().join('\\n');\nconst cached_context = JSON.stringify($items(\"Get Cached Context1\")[0]?.json.search_results || []);\n\n// 2. Extract required fields from the 'dates' object\nconst start_time = $('NLP Date Parser').first().json.dates[0].start;\nconst end_time = $('NLP Date Parser').first().json.dates[0].end;\nconst timezone = $('NLP Date Parser').first().json.dates[0].timezone;\n\n// 3. Create a separate block with time information\nconst time_info = `\nTime Information: \n---\nStart: ${start_time}\nEnd: ${end_time}\nTimezone: ${timezone}\ntransfer values to time parameters do not change them\n`;\n\n// 4. Add time information to the main agent input\nconst user_input = `\n${time_info}\n---\nChat History:\n---\n${history}\n---\nCached Context (Previous Search Results):\n---\n${cached_context}\n---\nNew User Query: \"${user_query}\"\n`;\n\nreturn { user_input, original_query: user_query };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4080,
+        32
+      ],
+      "id": "c692f2d8-7557-4515-8a95-279a9fa70bc5",
+      "name": "Prepare Agent Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Purpose: Safely extract and parse JSON from the LLM response.\n\ntry {\n  // 1. Get text content from OpenAI response\n  const content = $input.first().json.output;\n\n  // 2. Use regex to find the JSON object within the text.\n  // Protects against extra text like \"Here is the JSON: ...\"\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n\n  if (jsonMatch && jsonMatch[0]) {\n    // 3. Parse and return if JSON is found\n    return JSON.parse(jsonMatch[0]);\n  } else {\n    // Throw error to trigger catch block if JSON not found\n    throw new Error(\"No valid JSON object found in the LLM response.\");\n  }\n\n} catch (error) {\n  // 4. On error (invalid or missing JSON),\n  // return a safe default object to keep the workflow running.\n  // Tells the system to skip the new search.\n  console.error(\"Failed to parse JSON from LLM response:\", error);\n  return {\n    needs_search: false,\n    search_parameters: null\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3520,
+        128
+      ],
+      "id": "3c8c28d6-dbfd-4214-b79b-98bf99e9a8bb",
+      "name": "Parse Decision"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_input }}",
+        "options": {
+          "systemMessage": "=\n<role>\nYou are an expert system that functions as a query planner.\n</role>\n<task>\nYour goal is to analyze the provided context, including current time information, and decide if a new database search is needed. Analyze the data provided in the user message to make your decision.\n</task>\n<constraints>\nImportant: transfer values \"start\" \"end\" from Time information block to \"time_parameters\" do not change them.\nYou must respond ONLY with a valid JSON object.\n</constraints>\n<instructions>\nIf the \"New User Query\" asks for new information OR is a direct command to \"find\", \"show\", or \"get details about\" a specific named entity, you MUST set \"needs_search\" to true and populate the \"search_parameters\" object. Do this even if the entity's name appears in the \"Cached Context\". The user wants the full, detailed record for that specific entity.\nIf the \"New User Query\" is a simple follow-up question that can be answered from the \"Chat History\" or \"Cached Context\" (e.g., \"which of them is more important?\", \"summarize this\"), set \"needs_search\" to false and both \"search_parameters\" and \"time_parameters\" to null.\nIf the query contains any time-related requests (e.g., \"today\", \"this week\", \"due tomorrow\", \"scheduled for Friday\"), you must parse this information and populate the \"time_parameters\" object. Use the Time Information block from the input context to determine the exact start and end dates.\n</instructions>\n<output_format>\nThe JSON object must have three keys:\n\"needs_search\": A boolean value (true or false).\n\"search_parameters\": A JSON object containing the search parameters, or null.\n\"time_parameters\": A JSON object containing the time parameters if the query involves a specific date or time range, otherwise null.\nDefinitions for \"search_parameters\" fields:\n\"query_text\": (string) The main topic of the query. For \"find my urgent tasks for home\", this would be \"urgent tasks for home\". Use original language of query.\n\"entity_type\": (string|null) The specific type of item the user is asking for. Must be one of ['Action', 'Project', 'Habit', 'Incubate', 'Reference', 'Inbox']. If not specified, return null.\n\"priority_filter\": (integer[]|null) An ARRAY of numbers from 1 to 5. If the user's request covers multiple levels, include all of them.\n5: важливо і терміново\n4: важливо, але не терміново\n3: терміново, але не важливо\n2: не важливо і не терміново\n1: бажано до виконання (хотілка)\n\"energy_filter\": (integer[]|null) An ARRAY of numbers from 1 to 5.\n5: дуже важко і довготривало\n4: дуже важко або довготривало\n3: відносно важко і довготривало\n2: відносно важко або довготривало\n1: швидко і легко\n\"time_filter_type\": (string|null) Specifies the type of time constraint. Must be one of ['due', 'scheduled', 'created', 'edited'].\n'due': Used for deadlines (e.g., \"due date\", \"deadline\", \"термін виконання до\").\n'scheduled': Used for planned events or tasks (e.g., \"scheduled for\", \"planned on\", \"заплановано на\").\n'created': Used for creation time (e.g., \"created on\", \"створено\", \"додано\").\n'edited': Used for last modification time (e.g., \"edited on\", \"last modified\", \"змінено\", \"редаговано\").\nDefinitions for \"time_parameters\" fields:\n\"start\": (string|null) The start of the time range in ISO 8601 format (e.g., \"2025-07-29T00:00:00.000Z\"). you have to pass the time from the \"start\" field to the time parameters. there is no need to change the time.\n\"end\": (string|null) The end of the time range in ISO 8601 format (e.g., \"2025-07-29T23:59:59.000Z\"). you have to pass the time from the \"end\" field to the time parameters. there is no need to change the time.\n</output_format>\n<examples>\n<example>\nExample 1: User Query: \"покажи мої важливі проєкти\" Your Expected JSON Output:\nJSON\n{\n\"needs_search\": true,\n\"search_parameters\": {\n\"query_text\": \"важливі проєкти\",\n\"entity_type\": \"Project\",\n\"priority_filter\": [4, 5],\n\"energy_filter\": null,\n\"time_filter_type\": null\n},\n\"time_parameters\": null\n}\n</example>\n<example>\nExample 2: User Query: \"знайди щось легке і неважливе\" Your Expected JSON Output:\nJSON\n{\n\"needs_search\": true,\n\"search_parameters\": {\n\"query_text\": \"легке і неважливе\",\n\"entity_type\": null,\n\"priority_filter\": [1, 2],\n\"energy_filter\": [1, 2],\n\"time_filter_type\": null\n},\n\"time_parameters\": null\n}\n</example>\n<example>\nExample 3 (Time-based query): Input Context: Time Information:\nStart: 2025-07-29T00:00:00.000Z End: 2025-07-29T23:59:59.000Z Timezone: Europe/Kyiv\nNew User Query: \"покажи задачі з терміном виконання на сьогодні\"\nYour Expected JSON Output:\nJSON\n{\n\"needs_search\": true,\n\"search_parameters\": {\n\"query_text\": \"задачі\",\n\"entity_type\": \"Action\",\n\"priority_filter\": null,\n\"energy_filter\": null,\n\"time_filter_type\": \"due\"\n},\n\"time_parameters\": {\n\"start\": \"2025-07-29T00:00:00.000Z\",\n\"end\": \"2025-07-29T23:59:59.000Z\"\n}\n}\n</example>\n<example>\nExample Input:\nChat History:\n---\nuser: знайди мої проєкти по здоров'ю\nassistant: Я знайшов проєкт \"Setup your life support system\".\n---\nCached Context (Previous Search Results):\n---\n[{\"title\":\"Setup your life support system\", \"priority_level\": 5, ...}]\n---\nNew User Query: \"який з них найважливіший?\"\nYour Expected JSON Output:\n{\n\"needs_search\": false,\n\"search_parameters\": null\n}\n</example>\n</examples>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -3872,
+        128
+      ],
+      "id": "bf80addd-02ae-4791-bd46-87e8306edd0d",
+      "name": "Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_input }}",
+        "options": {
+          "systemMessage": "=\n<role>\nТи — корисний розмовний AI-асистент.\n</role>\n<task>\nТвоя задача — вести діалог з користувачем і давати чіткі, структуровані та лаконічні відповіді на його запитання.\nПроаналізуй надані дані та дай відповідь на \"Останнє запитання користувача\", дотримуючись усіх правил.\n</task>\n<context>\nТвоя відповідь має базуватися виключно на інформації, наданій у секціях \"Історія розмови\", \"Попередній знайдений контекст\" та \"Результати нового пошуку\".\n</context>\n<instructions>\nСпирайся на історію розмови, щоб розуміти уточнюючі запитання.\n</instructions>\n<constraints>\nЗавжди відповідай українською мовою.\nНе вигадуй інформацію, якої немає в наданому контексті. Використовуй дані з полів title, content та metadata.\nЯкщо відповіді немає в контексті, чесно скажи про це. Наприклад: \"На основі наданої інформації я не можу відповісти на це питання.\"\n</constraints>\n<output_format>\nТвоя головна мета — перетворити надані JSON-об'єкти у легку для читання, інформативну відповідь.\nЗагальний формат:\nЯкщо знайдено кілька записів, представляй їх як маркований список. Для кожного запису використовуй форматування, що відповідає його типу сутності (entity_type). Якщо юзер запитує час створення або редагування, витягни їх з notion_created_time та notion_last_edited_time та вкажи їх для кожного запису.\nПравила для конкретних сутностей:\nВикористовуй дані з усього об'єкта, включно з title та metadata, щоб надати повну відповідь.\nЯкщо entity_type — \"Project\" 📂:\nНазва: Проєкт \"[Назва з title]\"\nПріоритет та енергія: (якщо є, покажи priority_emoji та energy_emoji).\nЗапланований час: (якщо є дані в scheduled, вкажи дату та час в форматі: \"2025-07-23 13:00\")\nТермін виконання: (якщо є дані в due_date, вкажи дату та час в форматі: \"2025-07-23 13:00\")\nLevel up ⬆️: Якщо в metadata.level_up є дані, вкажи: Цей проект є частиною: [Назва з metadata.level_up].\nЗалежності: Якщо є дані в metadata.depends_on, вкажи, від чого залежить проєкт.\nСтатус: Вкажи кількість невиконаних завдань з metadata.remaining_tasks.\nКонтекст: Перелічи теги з metadata.context_tags.\nПосилання: Додай посилання з metadata.url у форматі Дивитись в Notion.\nЯкщо entity_type — \"Action\" ✅:\nНазва: Дія \"[Назва з title]\"\nПріоритет та енергія: (якщо є, покажи priority_emoji та energy_emoji).\nLevel up ⬆️: Якщо в metadata.level_up є дані, вкажи: Ця дія є частиною: [Назва з metadata.level_up].\nЗапланований час: (якщо є дані в scheduled, вкажи дату та час в форматі: \"2025-07-23 13:00\")\nТермін виконання: (якщо є дані в due_date, вкажи дату та час в форматі: \"2025-07-23 13:00\")\nЗалежності: Якщо є дані в metadata.depends_on, вкажи, від чого залежить дія.\nБлокування: Якщо є дані в metadata.blocking, вкажи, що ця дія блокує.\nКонтекст: Перелічи теги з metadata.context_tags.\nПосилання: Додай посилання з metadata.url у форматі Дивитись в Notion.\nЯкщо entity_type — \"Habit\" 🔄:\nНазва: Звичка \"[Назва з title]\"\nПріоритет та енергія: (якщо є, покажи priority_emoji та energy_emoji).\nСтадія: Якщо в metadata.habit_stage є значення, вкажи його: Стадія формування: [значення].\nLevel up ⬆️: Якщо в metadata.level_up є дані, вкажи: Ця звичка є частиною: [Назва з metadata.level_up].\nКонтекст: Перелічи теги з metadata.context_tags.\nПосилання: Додай посилання з metadata.url у форматі Дивитись в Notion.\nЯкщо entity_type — \"Incubate\" (Ідея) 💡:\nНазва: Ідея \"[Назва з title]\"\nПріоритет та енергія: (якщо є, вкажи priority_emoji та energy_emoji, пояснивши, що це стосується складності реалізації).\nLevel up ⬆️: Якщо в metadata.level_up є дані, вкажи: Ця ідея є частиною: [Назва з metadata.level_up].\nКонтекст: Перелічи теги з metadata.context_tags.\nПосилання: Додай посилання з metadata.url у форматі Дивитись в Notion.\n</output_format>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        -1648,
+        48
+      ],
+      "id": "0bce1915-b65e-46cc-92b5-93a5daa8bc02",
+      "name": "Synthesizer"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.dynamicQuery }}",
+        "options": {
+          "queryReplacement": "={{ $json.dynamicParams }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2624,
+        32
+      ],
+      "id": "3e0ff7e3-0e43-4642-9818-ad5eac63a368",
+      "name": "Hybrid Search",
+      "alwaysOutputData": true,
+      "executeOnce": false,
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('When Executed by Another Workflow').item.json.userMessage }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=<role>\nYou are a high-precision language analyzer.\n</role>\n<task>\nYour task is to comprehensively process user queries to determine their language and extract time context according to a strict set of rules.\n</task>\n<constraints>\nYou must strictly adhere to the JSON output format.\nYour response MUST be a single JSON object with no additional explanations.\n</constraints>\n<instructions>\nLanguage Detection: Determine the primary language of the query.\nTime Context Analysis: Analyze the query to find any time references. If a reference is found, set has_time_context to true and determine the value for the time_context field according to the rules below.\nRules for Generating the time_context Value\nThe value for the time_context field MUST ALWAYS be in English. You must apply the following rules in order of priority to determine the correct value.\nRule #1 (Highest Priority): Date Range\nIf you find a range of numbers followed by a month name (e.g., з 17 по 18 липня, from 20 to 25 August).\nAction: The time_context value must be the English translation of this phrase.\nExample з 17 по 18 липня -> time_context: \"from 17 to 18 July\".\nRule #2 (Second Priority): Time Range\nIf you find a range of numbers NOT followed by a month name (e.g., з 18 до 20, meeting between 2 and 4).\nAction: The time_context value must be the English, structured transformation of this phrase.\nExample з 18 до 20 -> time_context: \"between 18:00 and 20:00\".\nRule #3 (General Case): All Other Time References\nIf you find any other time reference (e.g., наступного тижня, tomorrow, у середу).\nAction: The time_context value must be the English translation of that phrase.\nExample наступного тижня -> time_context: \"next week\".\nExample у середу -> time_context: \"on Wednesday\".\n</instructions>\n<output_format>\nIt must always contain:\nlanguage: The detected language (\"Ukrainian\", \"English\", etc.).\nhas_time_context: A boolean true or false.\noriginal_query: The complete original user query.\nIf has_time_context is true, the JSON must also contain a time_context field.\n</output_format>\n<examples>\n<example>\nExample 1: Query in Ukrainian with time context\nInput Query: знайди мені завдання на ці вихідні\nExpected Output (JSON):\nJSON\n{\n\"language\": \"Ukrainian\",\n\"has_time_context\": true,\n\"original_query\": \"знайди мені завдання на ці вихідні\",\n\"time_context\": \"this weekend\"\n}\n</example>\n<example>\nExample 2: Query in English with time context\nInput Query: What is the weather forecast for tomorrow?\nExpected Output (JSON):\nJSON\n{\n\"language\": \"English\",\n\"has_time_context\": true,\n\"original_query\": \"What is the weather forecast for tomorrow?\",\n\"time_context\": \"tomorrow\"\n}\n</example>\n<example>\nExample 3: Query in Ukrainian WITHOUT time context\nInput Query: Покажи мої активні проекти\nExpected Output (JSON):\nJSON\n{\n\"language\": \"Ukrainian\",\n\"has_time_context\": false,\n\"original_query\": \"Покажи мої активні проекти\"\n}\n</example>\n<example>\nExample 4: Query in English WITHOUT time context\nInput Query: Show me my active projects\nExpected Output (JSON):\nJSON\n{\n\"language\": \"English\",\n\"has_time_context\": false,\n\"original_query\": \"Show me my active projects\"\n}\n</example>\n</examples>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -5360,
+        128
+      ],
+      "id": "a6b83c09-2e60-4d74-91a6-c684b1c7c5e3",
+      "name": "Query parser (time)"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\"language\": \"Ukrainian\",\n\"has_time_context\": true,  \n\"original_query\": \"знайди завдання на ці вихідні\", \"time_context\": \"this weekend\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -5216,
+        304
+      ],
+      "id": "ad9a00ea-5aae-474e-8f78-f8cfb5f2bd97",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00ec9ea1-3195-4918-9fa9-db7444b257d2",
+              "leftValue": "={{ $json.output.has_time_context }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5056,
+        176
+      ],
+      "id": "5d734912-3472-4643-b990-b1197bedfd1d",
+      "name": "If has time context",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect results from the \"Hybrid Search\" node, serializing each JSON object\nconst new_search_results = $items(\"Hybrid Search\").map(item => JSON.stringify(item.json, null, 2)).join('\\n\\n');\n\n// Get other context parts from previous nodes\n// Note: Ensure the 'Code2' node exists and contains the user query.\nconst user_query = $('When Executed by Another Workflow').first().json.userMessage;\n\nconst history = $items(\"Get Chat History3\").map(item => `${item.json.role}: ${item.json.content}`).reverse().join('\\n');\n\nconst cached_context = JSON.stringify($items(\"Get Cached Context\")[0]?.json.search_results || '[]');\n\n// Construct a single input string for the User Message\nconst user_input = `\nChat History:\n---\n${history}\n---\nPrevious Found Context:\n---\n${cached_context}\n---\nNew Search Results:\n---\n${new_search_results}\n---\nLatest User Query: \"${user_query}\"\n`;\n\nreturn { user_input };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1952,
+        32
+      ],
+      "id": "b6d1be97-7ec7-47c2-b794-0448add5eac4",
+      "name": "Prepare Synthesizer Input1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const user_query = $('When Executed by Another Workflow').first().json.userMessage;\nconst history = $items(\"Get Chat History2\").map(item => `${item.json.role}: ${item.json.content}`).reverse().join('\\n');\nconst cached_context = JSON.stringify($items(\"Get Cached Context2\")[0]?.json.search_results || []);\n\n// Construct a single string with all dynamic information\nconst user_input = `\nChat History:\n---\n${history}\n---\nCached Context (Previous Search Results):\n---\n${cached_context}\n---\nNew User Query: \"${user_query}\"\n`;\n\nreturn { user_input, original_query: user_query };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4080,
+        224
+      ],
+      "id": "85c1ce2b-3ee8-4c37-9907-6fc157171621",
+      "name": "Prepare Agent Input1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect new search results (if any)\n\n// Collect new search results by serializing the entire JSON object\nconst new_search_results = items.map(item => JSON.stringify(item.json, null, 2)).join('\\n\\n');\n\n\n\n// Get other context parts from previous nodes\n\nconst user_query = $('When Executed by Another Workflow').first().json.userMessage;\n\nconst history = $items(\"Get Chat History2\").map(item => `${item.json.role}: ${item.json.content}`).reverse().join('\\n');\n\nconst cached_context = JSON.stringify($items(\"Get Cached Context2\")[0]?.json.search_results || '[]');\n\n\n\n// Construct a single input string for the User Message\n\nconst user_input = `\n\nChat History:\n\n---\n\n${history}\n\n---\n\nPrevious Found Context:\n\n---\n\n${cached_context}\n\n---\n\nNew Search Results (if any):\n\n---\n\n${new_search_results}\n\n---\n\nLatest User Query: \"${user_query}\"\n\n`;\n\n\n\nreturn { user_input };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3072,
+        224
+      ],
+      "id": "4a489052-21dd-4715-bc65-6af8fa0c35bb",
+      "name": "Prepare Synthesizer Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract Telegram chat_id to use as a unique conversation key.\n// Since chat_id is a number and the DB column requires a UUID,\n// we generate a stable UUID based on the chat_id.\n\nconst chat_id = $input.first().json.chatID;\n\nif (!chat_id) {\n  throw new Error(\"Chat ID is missing from Telegram trigger.\");\n}\n\n// A simple way to create a consistent, valid UUID from chat_id.\n// Convert chat_id to a string and pad it with zeros to the required length.\nconst uuid_from_chat_id = String(chat_id).padEnd(32, '0').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');\n\nreturn { conversation_id: uuid_from_chat_id };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5728,
+        128
+      ],
+      "id": "1382c8e8-f082-4958-974e-c10b4e1fd2a6",
+      "name": "Get or Create Convo ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a8198697-a9ca-4b11-8178-dee8abaf8d5e",
+              "name": "status",
+              "value": "={{ $json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "d0d65186-45b6-4918-b753-db0612d6ca64",
+              "name": "confirmationSent",
+              "value": "={{ $json.confirmationSent }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cd2bd76d-da8d-4d22-a580-1db1f6cc2a4a",
+              "name": "finalMessage",
+              "value": "={{ $json.finalMessage }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        0
+      ],
+      "id": "2c533f0e-86bb-4b5c-a7fe-6fb45f5799d9",
+      "name": "Set (Final Response)2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a8198697-a9ca-4b11-8178-dee8abaf8d5e",
+              "name": "status",
+              "value": "={{ $json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "d0d65186-45b6-4918-b753-db0612d6ca64",
+              "name": "confirmationSent",
+              "value": "={{ $json.confirmationSent }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cd2bd76d-da8d-4d22-a580-1db1f6cc2a4a",
+              "name": "finalMessage",
+              "value": "={{ $json.finalMessage }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -64,
+        192
+      ],
+      "id": "14264ae5-9382-4867-8a8e-32b4aa398675",
+      "name": "Set (Final Response)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('When Executed by Another Workflow').item.json.chatID }}",
+        "text": "Запит передано на обробку агенту пошуку",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -5536,
+        128
+      ],
+      "id": "7bf06292-c6e7-41ea-be96-6d133e38dc8c",
+      "name": "Send a text message",
+      "webhookId": "5c73dde9-c30d-4a81-b963-d4f4aa0dd69f",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $json.search_parameters.query_text }}"
+            },
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3072,
+        32
+      ],
+      "id": "c6c2b8fc-9968-4670-8ae2-4a245545d1ad",
+      "name": "Generate Embeddings",
+      "alwaysOutputData": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "ivhvfR2OOYsCUZEq",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT role, content FROM conversation_history\nWHERE conversation_id = $1\nORDER BY created_at DESC\nLIMIT 10;",
+        "options": {
+          "queryReplacement": "={{ $items(\"Get or Create Convo ID\")[0].json.conversation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2400,
+        32
+      ],
+      "id": "7d77d4b4-0979-4dda-af5d-fde86e38ff2a",
+      "name": "Get Chat History3",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT role, content FROM conversation_history\nWHERE conversation_id = $1\nORDER BY created_at DESC\nLIMIT 10;",
+        "options": {
+          "queryReplacement": "={{ $items(\"Get or Create Convo ID\")[0].json.conversation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -4592,
+        32
+      ],
+      "id": "b8bf6a2e-478b-44bf-97f5-ca6c3c70cc72",
+      "name": "Get Chat History1",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT role, content FROM conversation_history\nWHERE conversation_id = $1\nORDER BY created_at DESC\nLIMIT 10;",
+        "options": {
+          "queryReplacement": "={{ $items(\"Get or Create Convo ID\")[0].json.conversation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -4592,
+        256
+      ],
+      "id": "68a369d6-70dd-400d-a9a5-c13130b2d8bc",
+      "name": "Get Chat History2",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT search_results FROM conversation_context\nWHERE conversation_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $items(\"Get or Create Convo ID\")[0].json.conversation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -4368,
+        256
+      ],
+      "id": "b9890e08-257f-4ae4-8e9e-71654a7a67d9",
+      "name": "Get Cached Context2",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -5392,
+        304
+      ],
+      "id": "312c4fed-5b37-4b13-9b69-58f4d6cc0d95",
+      "name": "OpenAI Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "ivhvfR2OOYsCUZEq",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -3792,
+        352
+      ],
+      "id": "9df369c1-636a-4173-a779-d9d5a6bf6e27",
+      "name": "OpenAI Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "ivhvfR2OOYsCUZEq",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1568,
+        224
+      ],
+      "id": "b9c96142-2d6d-4997-a9dc-de4df5392af2",
+      "name": "OpenAI Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "ivhvfR2OOYsCUZEq",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO conversation_context (conversation_id, search_results, updated_at)\nVALUES ($1, $2::jsonb, NOW())\nON CONFLICT (conversation_id)\nDO UPDATE SET\n  search_results = EXCLUDED.search_results,\n  updated_at = NOW();",
+        "options": {
+          "queryReplacement": "={{ $items(\"Get or Create Convo ID\")[0].json.conversation_id }}, {{ JSON.stringify($items(\"Hybrid Search\")) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -512,
+        0
+      ],
+      "id": "d5e64d81-41ae-460a-9dcc-3ac298e1404f",
+      "name": "Update Context",
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('When Executed by Another Workflow').first().json.chatID }}",
+        "text": "={{ $('Synthesizer').item.json.output.replace(/\\*/g, '\\\\*') }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🔴 Завершити розмову з агентом",
+                    "additionalFields": {
+                      "callback_data": "end_session"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        0
+      ],
+      "id": "3a0d6a79-375d-4369-aeca-8be4933175f3",
+      "name": "Send Telegram Message2",
+      "webhookId": "23fc8f92-711d-45ab-8c11-2cbfa8446130",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('When Executed by Another Workflow').first().json.chatID }}",
+        "text": "={{ $('Synthesizer').item.json.output.replace(/\\*/g, '\\\\*') }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🔴 Завершити розмову з агентом",
+                    "additionalFields": {
+                      "callback_data": "end_session"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -512,
+        192
+      ],
+      "id": "77732450-382e-470d-910b-397f256b0d0c",
+      "name": "Send Telegram Message",
+      "webhookId": "66cfe2fb-54f7-4a83-aea6-d71284f2b930",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "conversation_history",
+          "mode": "list",
+          "cachedResultName": "conversation_history"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $items(\"Get or Create Convo ID\")[0].json.conversation_id }}",
+            "role": "user",
+            "content": "={{ $('When Executed by Another Workflow').first().json.userMessage }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "role",
+              "displayName": "role",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1184,
+        96
+      ],
+      "id": "8c8f74b5-d036-42fd-9327-cc6377993d17",
+      "name": "Save User Message",
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0ffcd044-df05-4ac1-beff-0fe65a236e9b",
+              "leftValue": "={{ $items(\"Parse Decision\")[0].json.needs_search === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -736,
+        96
+      ],
+      "id": "79019e4b-5eaa-46bd-b59f-b7d46f0b068f",
+      "name": "Needs Search?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data from the Telegram node\nconst telegramNodeData = $('Send Telegram Message2').item.json;\n\nlet finalResult;\n\n// Check if the message was sent successfully (telegramNodeData.ok === true)\nif (telegramNodeData.ok) {\n  // If so, create a success result object\n  finalResult = {\n    status: 'success',\n    confirmationSent: true,\n    finalMessage: 'Confirmation sent successfully.'\n  };\n} else {\n  // If an error occurred, create an error object\n  finalResult = {\n    status: 'error',\n    confirmationSent: false,\n    finalMessage: 'Failed to send confirmation to Telegram.',\n    // Add error details for diagnostics\n    errorDetails: telegramNodeData\n  };\n}\n\n// Return the final result\nreturn [finalResult];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "069678df-dcf2-42a1-a234-3a5167f96a46",
+      "name": "Confirmation2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data from the Telegram node\nconst telegramNodeData = $('Send Telegram Message2').item.json;\n\nlet finalResult;\n\n// Check if the message was sent successfully (telegramNodeData.ok === true)\nif (telegramNodeData.ok) {\n  // If so, create a success result object\n  finalResult = {\n    status: 'success',\n    confirmationSent: true,\n    finalMessage: 'Confirmation sent successfully.'\n  };\n} else {\n  // If an error occurred, create an error object\n  finalResult = {\n    status: 'error',\n    confirmationSent: false,\n    finalMessage: 'Failed to send confirmation to Telegram.',\n    // Add error details for diagnostics\n    errorDetails: telegramNodeData\n  };\n}\n\n// Return the final result\nreturn [finalResult];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        192
+      ],
+      "id": "4b5ea717-7da4-4d2b-a8b3-20940eaab7a9",
+      "name": "Confirmation"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT search_results FROM conversation_context\nWHERE conversation_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $items(\"Get or Create Convo ID\")[0].json.conversation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -4368,
+        32
+      ],
+      "id": "91820313-385a-4624-b087-7bf6d796f4ae",
+      "name": "Get Cached Context1",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://notion-filter-fetcher.vercel.app/api/extract-dates",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.output.time_context || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4864,
+        80
+      ],
+      "id": "976a96ce-9c60-483a-86a4-163b725dd605",
+      "name": "NLP Date Parser"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT search_results FROM conversation_context\nWHERE conversation_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $items(\"Get or Create Convo ID\")[0].json.conversation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2176,
+        32
+      ],
+      "id": "a45303ce-c63f-4c8d-be75-80e92528a0f7",
+      "name": "Get Cached Context",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2efff935-c95c-400e-8415-858dce520bd6",
+              "leftValue": "={{ $json.needs_search }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3312,
+        128
+      ],
+      "id": "ffc0881c-eb53-4156-ada7-1c27d195aa39",
+      "name": "Check Search Requirement1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- 1. GATHER DATA FROM PREVIOUS NODES ---\n\n// Get the result from the 'Parse Decision' node.\nconst decisionItem = $('Parse Decision').first();\nconst decisionData = decisionItem.json.output ? JSON.parse(decisionItem.json.output) : decisionItem.json;\n\n// Extract search and time parameters\nconst searchParams = decisionData.search_parameters || {};\nconst timeParams = decisionData.time_parameters || {};\n\n// Get the embedding from the OpenAI node\nconst embedding = $('Generate Embeddings').first().json.data[0].embedding;\n\n// Get the match count or default to 10\nconst match_count = decisionData.match_count || 10;\n\n// --- UPDATED VALIDATION ---\n// Now check only for truly critical data: query text and embedding.\n// entity_type can be null, which is fine.\nif (!searchParams.query_text || !embedding) {\n  throw new Error(\"Critical error: missing query text or embedding.\");\n}\n\n// --- 2. BUILD DYNAMIC QUERY ---\n\nlet sqlQuery = '';\nlet sqlParams = [];\n\n// Create the base set of parameters needed for any query\nconst baseParams = [\n  searchParams.query_text,      // $1\n  embedding,                    // $2\n  searchParams.entity_type,     // $3 (null is a valid value)\n  searchParams.priority_filter, // $4\n  searchParams.energy_filter,   // $5\n  match_count                   // $6\n];\n\n// --- 3. CORE LOGIC: QUERY SELECTION ---\n\n// Build a complex query if a time filter and valid dates exist\nif (searchParams.time_filter_type && timeParams && timeParams.start && timeParams.end) {\n  sqlQuery = `\n    SELECT\n      title, content, entity_type, priority_level, energy_level,\n      due_date AT TIME ZONE 'Europe/Kyiv' as due_date,\n      scheduled AT TIME ZONE 'Europe/Kyiv' as scheduled,\n      metadata, notion_created_time AT TIME ZONE 'Europe/Kyiv' as notion_created_time, notion_last_edited_time AT TIME ZONE 'Europe/Kyiv' as notion_last_edited_time\n    FROM search_documents(\n      $1::text, $2::vector, $3::text, $4::integer[], $5::integer[],\n      $6::integer, $7::text, $8::timestamptz, $9::timestamptz\n    );\n  `;\n  sqlParams = [\n    ...baseParams,\n    searchParams.time_filter_type, // $7\n    timeParams.start,              // $8\n    timeParams.end                 // $9\n  ];\n} else {\n  // Otherwise, build the base query\n  sqlQuery = `\n    SELECT\n      title, content, entity_type, priority_level, energy_level,\n      due_date, metadata, due_date AT TIME ZONE 'Europe/Kyiv' as due_date,\n      scheduled AT TIME ZONE 'Europe/Kyiv' as scheduled,\n      metadata, notion_created_time AT TIME ZONE 'Europe/Kyiv' as notion_created_time, notion_last_edited_time AT TIME ZONE 'Europe/Kyiv' as notion_last_edited_time\n    FROM search_documents(\n      $1::text, $2::vector, $3::text, $4::integer[], $5::integer[], $6::integer\n    );\n  `;\n  sqlParams = baseParams;\n}\n\n// --- 4. RETURN RESULT ---\n\n// Return an object with two fields to be used in the PostgreSQL node\nreturn {\n  dynamicQuery: sqlQuery,\n  dynamicParams: sqlParams\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2848,
+        32
+      ],
+      "id": "db617e02-b657-46f5-baa4-f375d5825dd4",
+      "name": "Build Search Query"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "conversation_history",
+          "mode": "list",
+          "cachedResultName": "conversation_history"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $items(\"Get or Create Convo ID\")[0].json.conversation_id }}",
+            "role": "assistant",
+            "content": "={{ $('Synthesizer').item.json.output }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "role",
+              "displayName": "role",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -960,
+        96
+      ],
+      "id": "cebdba9b-a5a6-4755-92b5-cdd9134a29d7",
+      "name": "Save Assistant Response",
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# 1. Entry Point & NLP Preprocessing\n## • Receives the user message and Telegram Chat ID from the parent workflow.\n## • Converts the Chat ID into a stable UUID for consistent conversation tracking.\n## • Uses an AI Agent and an external microservice (NLP Date Parser) to detect and convert natural language time references (e.g., \"next weekend\") into precise ISO dates.",
+        "height": 720,
+        "width": 1328,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -6032,
+        -224
+      ],
+      "id": "7fe34e10-18aa-4425-b497-1868335b469f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# 2. Query Planner (Agentic Routing)\n## • An AI Agent acts as the \"Brain\", analyzing the user's intent alongside previous chat history.\n## • It makes a logical decision: Can we answer this using memory, or do we need a new database search?\n## • Outputs a structured JSON containing the decision and exact search filters (entity type, priority, energy levels).",
+        "height": 768,
+        "width": 1008
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -4176,
+        -272
+      ],
+      "id": "c9dba35a-307b-439a-8fd6-db5ce9fa444d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# 3. Dynamic Hybrid Search (Vector + Relational)\n## • Triggered only if the Query Planner decides a search is necessary.\n## • Generates OpenAI text embeddings for semantic matching.\n## • Dynamically builds a PostgreSQL query that combines vector similarity (pgvector) with strict relational filters (dates, priorities) for high-precision retrieval.",
+        "height": 880,
+        "width": 672,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3136,
+        -384
+      ],
+      "id": "5aba484e-c72d-48c5-9888-d5ed52bf991f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# 4. Response Synthesis\n## • A LLM (GPT-4.1) ingests the complete context: chat history, previous cache, and new search results.\n## • Synthesizes a clean, structured, and user-friendly response, perfectly formatting different Notion database entities (Projects, Actions, Habits).\n",
+        "height": 816,
+        "width": 560,
+        "color": "#580070"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1808,
+        -320
+      ],
+      "id": "7c2df861-4bba-4023-9007-84569c0f2309",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "# 5. Memory Storage & Final Delivery\n## • Saves both the user's prompt and the AI's response into the PostgreSQL conversation history.\n## • Updates the \"Cached Context\" if a new search was performed (optimizing future queries).\n## • Delivers the final Markdown-formatted message back to the user via Telegram.\n\n",
+        "height": 736,
+        "width": 1584,
+        "color": "#2F4CC1"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1216,
+        -240
+      ],
+      "id": "9a5a5930-4c85-41f5-aa9e-0aa4c496f282",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get or Create Convo ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Agent Input": {
+      "main": [
+        [
+          {
+            "node": "Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Decision": {
+      "main": [
+        [
+          {
+            "node": "Check Search Requirement1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser": {
+      "main": [
+        [
+          {
+            "node": "Parse Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthesizer": {
+      "main": [
+        [
+          {
+            "node": "Save User Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hybrid Search": {
+      "main": [
+        [
+          {
+            "node": "Get Chat History3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query parser (time)": {
+      "main": [
+        [
+          {
+            "node": "If has time context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Query parser (time)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If has time context": {
+      "main": [
+        [
+          {
+            "node": "NLP Date Parser",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Chat History2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Synthesizer Input1": {
+      "main": [
+        [
+          {
+            "node": "Synthesizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Agent Input1": {
+      "main": [
+        [
+          {
+            "node": "Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Synthesizer Input": {
+      "main": [
+        [
+          {
+            "node": "Synthesizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get or Create Convo ID": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Query parser (time)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Embeddings": {
+      "main": [
+        [
+          {
+            "node": "Build Search Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat History3": {
+      "main": [
+        [
+          {
+            "node": "Get Cached Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat History1": {
+      "main": [
+        [
+          {
+            "node": "Get Cached Context1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat History2": {
+      "main": [
+        [
+          {
+            "node": "Get Cached Context2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cached Context2": {
+      "main": [
+        [
+          {
+            "node": "Prepare Agent Input1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Query parser (time)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Synthesizer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Context": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Message2": {
+      "main": [
+        [
+          {
+            "node": "Confirmation2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save User Message": {
+      "main": [
+        [
+          {
+            "node": "Save Assistant Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Search?": {
+      "main": [
+        [
+          {
+            "node": "Update Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmation2": {
+      "main": [
+        [
+          {
+            "node": "Set (Final Response)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Set (Final Response)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cached Context1": {
+      "main": [
+        [
+          {
+            "node": "Prepare Agent Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NLP Date Parser": {
+      "main": [
+        [
+          {
+            "node": "Get Chat History1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cached Context": {
+      "main": [
+        [
+          {
+            "node": "Prepare Synthesizer Input1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Search Requirement1": {
+      "main": [
+        [
+          {
+            "node": "Generate Embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Synthesizer Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Search Query": {
+      "main": [
+        [
+          {
+            "node": "Hybrid Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Assistant Response": {
+      "main": [
+        [
+          {
+            "node": "Needs Search?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "dd6f3eff-30d9-45c6-b12e-32bb450b9064",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c870bd7539f9a2bc5fc0ada3b6a85635bbf1489c6c06ca95b23aaa62cd86e259"
+  },
+  "id": "ojKDLpe1tNaz6L7C",
+  "tags": [
+    {
+      "updatedAt": "2026-06-01T19:30:50.987Z",
+      "createdAt": "2026-06-01T19:30:50.987Z",
+      "id": "wGMWPMKyMmT0I1In",
+      "name": "Portfolio"
+    }
+  ]
+}

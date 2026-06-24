@@ -1,0 +1,791 @@
+{
+  "name": "autonomous-scheduling-agent-calendar-orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        848
+      ],
+      "id": "a03699da-7ce0-402a-9388-1246b1f87d4c",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "description": "Викликай цей інструмент ПЕРШИМ ДІЛОМ, щоб отримати єдиний, пріоритезований список всіх подій з робочого та особистого календарів на вказану дату. Повертає масив подій, де кожна подія має eventId та позначку про пріоритет.",
+        "workflowId": {
+          "__rl": true,
+          "value": "LUwcqd0nS7xWsCI9",
+          "mode": "list",
+          "cachedResultName": "get_calendar_schedule (without sync calendar)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('date', `Дата для пошуку у форматі 'YYYY-MM-DD'.`, 'string') }}"
+          },
+          "matchingColumns": [
+            "date"
+          ],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        848
+      ],
+      "id": "c302a70a-fdb7-41da-8dc5-387d62159753",
+      "name": "get_calendar_schedule"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "final_plan"
+            },
+            {
+              "name": "other_plan"
+            },
+            {
+              "name": "date"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        16,
+        624
+      ],
+      "id": "0b68743b-ae63-4e8a-ba5a-4a3dd7176f33",
+      "name": "Trigger"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\n<task>\nОсь завдання на сьогодні.\n</task>\n<input_data>\nДата:\n{{ $('Trigger').item.json.date }}\nФінальний план для обробки:\n{{ $('Trigger').item.json.final_plan }}\nДоступні календарі:\n{{ $('Aggregate').item.json.Calendar_info.map(cal => - ${cal.name} (ID: ${cal.id})).join('\\n') }}\n</input_data>",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=<role>\nТи — AI-інструмент \"Планувальник\".\n</role>\n<task>\nТвоя мета — перетворити фінальний текстовий план на масив JSON-об'єктів для Google Календаря. Твоя задача — створювати нові події, а також видаляти існуючі події, якщо в плані для них вказано новий час.\n</task>\n<context>\nДоступні Інструменти\nget_calendars(): Отримати список усіх доступних календарів та їхні ID. Повертає масив об'єктів, де кожен об'єкт має поля id та name.\nget_calendar_schedule(date): Отримати список існуючих подій на вказану дату. Кожна подія у відповіді містить id (унікальний ідентифікатор події), summary (назву) та description (опис).\nВхідні дані\nТи отримаєш фінальний план та дату в повідомленні від користувача. Твоє завдання — обробити їх згідно з алгоритмом.\n</context>\n<instructions>\nАлгоритм дій\nКРОК 1: Отримання ID календарів та існуючих подій\nТвій перший і обов'язковий крок — викликати інструмент get_calendar_schedule, щоб отримати повний список доступних календарів.\nУ отриманому списку знайди календарі, що відповідають за робочі та особисті справи (наприклад, за назвами \"Work\", \"Personal\", \"Робота\" тощо), та збережи їхні id у свою тимчасову пам'ять.\nТвій другий обов'язковий крок — викликати інструмент get_events(date), щоб отримати список існуючих подій з їхніми summary (назвою) та description (описом).\nЗбережи ці дані. Це критично важливо для правильного розподілу та збагачення подій на наступних кроках.\nКРОК 2: Парсинг плану та підготовка даних Ретельно розпарси вхідний текстовий final_plan на окремі пункти. Для кожного пункту визнач:\nНазву події (наприклад, \"Робочий звіт\").\nТип події: чи є у неї вказаний час (напр., \"10:00 - 11:00\") або вона триває весь день (час не вказано).\nЧас початку та закінчення (лише для подій з вказаним часом).\nКонтекст (робочий чи особистий), спираючись на ключові слова в назві.\nСтвори внутрішній список бажаних подій (desired_events), де кожен елемент містить цю структуровану інформацію.\nКРОК 3: Формування JSON-відповіді для створення подій Збери єдиний масив JSON-об'єктів. Для кожного елемента зі списку desired_events, створеного на Кроці 2, згенеруй один JSON-об'єкт у цьому масиві.\nПравила вибору calendarId:\nЯкщо назва події містить слова \"робота\", \"університет\", \"звіт\", \"дзвінок\", \"зустріч\", \"проєкт\" — завжди використовуй id робочого календаря, який ти визначив на Кроці 1.\nЯкщо назва події містить слова \"тренування\", \"прогулянка\", \"лікар\", \"хобі\", \"зустріч з друзями\", \"особисте\", \"день народження\" — завжди використовуй id особистого календаря, який ти визначив на Кроці 1.\nПравило обробки дублікатів, конфліктів та зміни часу Для кожного елемента з desired_events (Крок 2), перед тим як генерувати об'єкт \"action\": \"create\", виконай перевірку у списку існуючих подій, отриманому на Кроці 1:\nЯкщо існує подія з такою ж або дуже схожою назвою (summary), але з ІНШИМ часом початку:\nСпочатку додай у фінальний масив JSON-об'єкт для видалення старої події. Цей об'єкт повинен мати: {\"action\": \"delete\", \"calendarId\": \"ID_календаря_старої_події\", \"eventId\": \"ID_старої_події\"}.\nПісля цього переходь до кроку 3, щоб створити нову подію.\n#змінено# Якщо для часового слоту нової події існує інша подія-конфлікт (з іншою назвою, час перетинається):\nДодай у фінальний масив JSON-об'єкт для видалення цієї конфліктної події, щоб звільнити час. {\"action\": \"delete\", \"calendarId\": \"ID_календаря_конфліктної_події\", \"eventId\": \"ID_конфліктної_події\"}. Це гарантує, що новий слот буде вільним.\nЯкщо існує подія з такою ж назвою та ТАКИМ САМИМ часом:\nНе роби нічого. Не створюй дублікат і не видаляй існуючу подію. Просто переходь до наступного пункту плану.\nЯкщо подія з такою назвою не існує (і після перевірки на кроці 2 немає конфліктів):\nПросто генеруй стандартний об'єкт для створення нової події.\n</instructions>\n<output_format>\nКожен об'єкт в масиві завжди повинен мати:\n\"action\": \"create\" — це поле є незмінним.\n\"calendarId\": відповідний ID, який ти зберіг на Кроці 1.\n\"summary\": назва події.\n\"allDay\": логічне поле (boolean). Встанови його в true для подій на весь день і в false для подій з вказаним часом.\nПравила форматування часу для подій:\nДля подій з вказаним часом: додай об'єкти start та end з полем \"dateTime\" у форматі ISO 8601 (YYYY-MM-DDTHH:mm:ss).\nДля подій на весь день: додай об'єкти start та end з полем \"date\" у форматі YYYY-MM-DD. Важливо: endDate має бути на один день більшим за startDate. Наприклад, для події на 2025-09-22, startDate буде 2025-09-22, а endDate — 2025-09-23.\nПравило для додавання опису (description): Для кожної нової події, яку ти створюєш, перевір, чи існує подія з такою ж або дуже схожою назвою (summary) у списку, отриманому на Кроці 1. Якщо така подія знайдена і вона має опис (description), скопіюй цей опис у поле \"description\" для нової події.\n</output_format>\n<examples>\n<example>\nВхідний final_plan:\nMarkdown\n- 11:30 - 12:00: Робочий дзвінок по проєкту\n- 15:30 - 16:00: Записатися до лікаря\nВхідна date: '2025-09-22'\nДія агента:\nВикликає get_calendars() і отримує ID календарів.\nВикликає get_calendar_schedule(date='2025-09-22'). Припустимо, інструмент повернув дві існуючі події:\nПерша — це та сама подія, але зі старим часом:\nJSON\n{\n\"id\": \"event_id_123_to_delete\",\n\"calendarId\": \"work_calendar_id_from_tool\",\n\"summary\": \"Робочий дзвінок по проєкту\",\n\"start\": { \"dateTime\": \"2025-09-22T10:00:00\" }\n}\nДруга — це інша подія, яка конфліктує за часом з планом:\nJSON\n{\n\"id\": \"event_id_456_to_delete_conflict\",\n\"calendarId\": \"personal_calendar_id_from_tool\",\n\"summary\": \"Пробіжка\",\n\"start\": { \"dateTime\": \"2025-09-22T15:00:00\" },\n\"end\": { \"dateTime\": \"2025-09-22T16:00:00\" }\n}\nАгент аналізує план:\nДля \"Робочого дзвінка\" він бачить зміну часу (10:00 -> 11:30) і готує delete для старої події та create для нової.\nДля \"Записатися до лікаря\" о 15:30 він бачить конфлікт часу з існуючою подією \"Пробіжка\" (15:00-16:00). Оскільки план є пріоритетом, агент готує delete для \"Пробіжки\", щоб звільнити слот.\nВихідний результат (OUTPUT) агента:\nJSON\n[\n{\n\"action\": \"delete\",\n\"calendarId\": \"work_calendar_id_from_tool\",\n\"eventId\": \"event_id_123_to_delete\"\n},\n{\n\"action\": \"delete\",\n\"calendarId\": \"personal_calendar_id_from_tool\",\n\"eventId\": \"event_id_456_to_delete_conflict\"\n},\n{\n\"action\": \"create\",\n\"calendarId\": \"work_calendar_id_from_tool\",\n\"summary\": \"Робочий дзвінок по проєкту\",\n\"allDay\": false,\n\"start\": {\n\"dateTime\": \"2025-09-22T11:30:00\"\n},\n\"end\": {\n\"dateTime\": \"2025-09-22T12:00:00\"\n}\n},\n{\n\"action\": \"create\",\n\"calendarId\": \"personal_calendar_id_from_tool\",\n\"summary\": \"Записатися до лікаря\",\n\"allDay\": false,\n\"start\": {\n\"dateTime\": \"2025-09-22T15:30:00\"\n},\n\"end\": {\n\"dateTime\": \"2025-09-22T16:00:00\"\n}\n}\n]\n</example>\n</examples>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        976,
+        624
+      ],
+      "id": "44e9b86e-cca0-4a9e-a2eb-f342b81431c1",
+      "name": "Executor planner"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "2710466d-200b-80bd-a24b-c5f39d2c0b28",
+          "mode": "list",
+          "cachedResultName": "Plans",
+          "cachedResultUrl": "https://www.notion.so/2710466d200b80bda24bc5f39d2c0b28"
+        },
+        "title": "=План на {{ $json.date }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Date|date",
+              "includeTime": false,
+              "date": "={{ $json.date }}"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "In progress"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "textContent": "={{ $json.final_plan }}"
+            },
+            {
+              "textContent": "={{ $json.other_plan }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        624
+      ],
+      "id": "0f852eea-df49-42f6-ad93-367e7187bd05",
+      "name": "Save plans",
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the text output from the AI agent\nconst agentOutput = items[0].json.output;\nlet jsonString = agentOutput;\n\n// --- NEW BLOCK: JSON CLEANUP & EXTRACTION ---\n// Find the start index of '[' and the end index of ']'\nconst startIndex = jsonString.indexOf('[');\nconst endIndex = jsonString.lastIndexOf(']');\n\n// If both start and end are found, extract the clean JSON\nif (startIndex !== -1 && endIndex !== -1) {\n  jsonString = jsonString.substring(startIndex, endIndex + 1);\n}\n// --- END OF NEW BLOCK ---\n\ntry {\n  // Parse the cleaned text string into a real JSON object\n  const parsedPlan = JSON.parse(jsonString);\n\n  // Return the task array for further processing\n  return parsedPlan;\n} catch (error) {\n  // If parsing still fails after cleanup, return the error for diagnostics\n  return { error: \"Failed to parse JSON\", details: error.message, originalOutput: agentOutput };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        624
+      ],
+      "id": "c74c12b5-9e65-41df-bafb-8c1ce17b7ebc",
+      "name": "Code (Parse JSON)"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $json.calendarId }}",
+          "mode": "id"
+        },
+        "eventId": "={{ $json.eventId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        2048,
+        432
+      ],
+      "id": "a457f225-46b9-48cd-9845-697230ca0d5b",
+      "name": "Delete an event"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $json.calendarId }}",
+          "mode": "id"
+        },
+        "start": "={{ $json.start.dateTime }}",
+        "end": "={{ $json.end.dateTime }}",
+        "additionalFields": {
+          "description": "={{ $json.description  || '' }}",
+          "summary": "={{ $json.summary }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        2048,
+        816
+      ],
+      "id": "1c77bc34-7f63-42e4-b50c-607495750654",
+      "name": "Create  shcheduled event"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $json.calendarId }}",
+          "mode": "id"
+        },
+        "start": "={{ $json.start.date }}",
+        "end": "={{ $json.end.date }}",
+        "additionalFields": {
+          "description": "={{ $json.description  || '' }}",
+          "summary": "={{ $json.summary }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        2048,
+        624
+      ],
+      "id": "62d0ca54-3e6a-4c06-847c-429d7789379d",
+      "name": "Create all day events"
+    },
+    {
+      "parameters": {
+        "description": "Використовуй цей інструмент, коли тобі потрібно отримати список доступних календарів та їхніх ID. Він не приймає жодних параметрів.",
+        "workflowId": {
+          "__rl": true,
+          "value": "JlBCX0s00EVHqyVv",
+          "mode": "list",
+          "cachedResultName": "get_calendars_tool"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        848
+      ],
+      "id": "c39c8364-2115-4d3b-89de-a68d3aee5e4d",
+      "name": "get_calendars"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bb7b879d-c923-4972-9552-f0cd04882b9e",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "delete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Delete Events"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f5fddcee-d43b-460e-bf96-7ef73d0a5237",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "create",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Create Events"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1600,
+        624
+      ],
+      "id": "411d2fac-2d3a-430c-8d3d-b80a2a612857",
+      "name": "Delete/Create"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.allDay }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "b52eb72b-f383-4b86-8576-f244229d9cbe"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "allDay true"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8a04fa0d-1064-444a-abb2-5b0b9d6d8b58",
+                    "leftValue": "={{ $json.allDay }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "allDay false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1824,
+        720
+      ],
+      "id": "5c2891b1-3714-45f2-a758-b97a173cf2f6",
+      "name": "Allday true/false"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2496,
+        608
+      ],
+      "id": "a8231b1e-4fba-454d-9462-604aecec5d56",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, priority FROM calendars;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        464,
+        624
+      ],
+      "id": "1dbb6842-c2e2-45c8-82de-c5704428c614",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "Calendar_info",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        688,
+        624
+      ],
+      "id": "183e8412-e6c2-4e9c-8fce-4e5b11aa77b5",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4517332a-0b9c-41a1-847d-9cc9cf91a081",
+              "name": "action",
+              "value": "create",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2272,
+        624
+      ],
+      "id": "0e9feafb-2948-4fdb-ab7e-67518f9fb541",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4517332a-0b9c-41a1-847d-9cc9cf91a081",
+              "name": "action",
+              "value": "delete",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2272,
+        432
+      ],
+      "id": "a5187a22-192a-4b52-a777-ce3435735da2",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4517332a-0b9c-41a1-847d-9cc9cf91a081",
+              "name": "action",
+              "value": "create",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2272,
+        816
+      ],
+      "id": "e5fac4a3-fef3-4271-a83b-49025f94a6f5",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "content": "# Autonomous Scheduling Agent (Calendar Orchestrator)\n\n## This execution-focused agent translates high-level textual daily plans into precise CRUD operations (Create, Read, Update, Delete) within Google Calendar.\n\n# Key Architectural Features:\n## • Autonomous Conflict Resolution: Before creating any events, the agent uses tools to query the current schedule. It detects overlaps and intelligently issues 'delete' commands for outdated or conflicting events to prevent double-booking.\n## • Semantic Context Routing: Dynamically parses the nature of each task to route events into the appropriate calendar (e.g., categorizing \"Project Call\" to the Work calendar and \"Doctor's Appointment\" to Personal).\n## • Deterministic Execution Pipeline: Implements the \"LLM as a Planner, Code as an Executor\" pattern. The AI strictly outputs a structured JSON array of actions, which are then safely processed and routed by hard-coded Switch nodes for execution.",
+        "height": 560,
+        "width": 1056,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "32f013e4-98a4-49c2-bb95-99e3a48f9216",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "79666653-ea03-4802-b109-cfa5425abb40",
+              "name": "final_response",
+              "value": "={{ `Завдання успішно виконано. Створено подій: ${$input.all().filter(item => item.json.action === 'create').length}. Видалено подій: ${$input.all().filter(item => item.json.action === 'delete').length}.` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2720,
+        624
+      ],
+      "id": "0d160533-f90d-4917-b27b-58b080ace76b",
+      "name": "Set (Final Response)",
+      "executeOnce": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Executor planner",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_calendar_schedule": {
+      "ai_tool": [
+        [
+          {
+            "node": "Executor planner",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "Save plans",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executor planner": {
+      "main": [
+        [
+          {
+            "node": "Code (Parse JSON)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save plans": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Parse JSON)": {
+      "main": [
+        [
+          {
+            "node": "Delete/Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete an event": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create  shcheduled event": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create all day events": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_calendars": {
+      "ai_tool": [
+        [
+          {
+            "node": "Executor planner",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete/Create": {
+      "main": [
+        [
+          {
+            "node": "Delete an event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Allday true/false",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allday true/false": {
+      "main": [
+        [
+          {
+            "node": "Create all day events",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create  shcheduled event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Set (Final Response)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Executor planner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "37767d69-9987-4b02-b9e8-938fafc12f8c",
+  "meta": {
+    "instanceId": "c870bd7539f9a2bc5fc0ada3b6a85635bbf1489c6c06ca95b23aaa62cd86e259"
+  },
+  "id": "lFsngjBptLeCPjfp",
+  "tags": [
+    {
+      "updatedAt": "2026-06-01T19:30:50.987Z",
+      "createdAt": "2026-06-01T19:30:50.987Z",
+      "id": "wGMWPMKyMmT0I1In",
+      "name": "Portfolio"
+    }
+  ]
+}

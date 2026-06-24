@@ -1,0 +1,43 @@
+---
+import SectionNode from './SectionNode.astro';
+import { stack } from '../data/site';
+import { withBase } from '../utils/url';
+
+const ICON_BASE = 'https://cdn.simpleicons.org';
+
+// If icon starts with '/' it's a local file in /public, otherwise it's a Simple Icons slug.
+// Local files need withBase() so they resolve under a project-page base path
+// (e.g. /n8n-portfolio/icons/x.svg); CDN icons are already absolute URLs.
+// Appending /ffffff forces white color on CDN icons (brand colors are often black = invisible on dark bg).
+function iconSrc(icon: string) {
+  return icon.startsWith('/') ? withBase(icon) : `${ICON_BASE}/${icon}`;
+}
+---
+
+<SectionNode eyebrow="CODE ▸ stack" id="stack">
+  <div class="stack-grid">
+    {stack.map((group) => (
+      <div class="stack-card">
+        <div class="label">{group.label}</div>
+        <div class="chips">
+          {group.items.map((item) => (
+            <span class="chip">
+              {item.icon && (
+                <img
+                  class="chip-icon"
+                  src={iconSrc(item.icon)}
+                  alt=""
+                  width="16"
+                  height="16"
+                  loading="lazy"
+                  onerror="this.style.display='none'"
+                />
+              )}
+              {item.name}
+            </span>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+</SectionNode>

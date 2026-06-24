@@ -1,0 +1,15 @@
+---
+import SectionNode from './SectionNode.astro';
+import { stats } from '../data/site';
+---
+
+<SectionNode eyebrow="AGGREGATE ▸ stats">
+  <div class="stats-grid">
+    {stats.map((s) => (
+      <div class="stat">
+        <div class="v">{s.value}</div>
+        <div class="l">{s.label}</div>
+      </div>
+    ))}
+  </div>
+</SectionNode>

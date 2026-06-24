@@ -1,0 +1,1191 @@
+{
+  "name": "social-crm-handler",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "search_people_in_notion",
+        "toolDescription": "Використовуй цей інструмент, щоб знайти людину в базі даних Notion за її повним іменем. Інструмент поверне унікальний ID сторінки цієї людини (page_id) та іншу інформацію.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "peoplenotionsocial",
+          "mode": "list",
+          "cachedResultName": "peoplenotionsocial"
+        },
+        "options": {
+          "pineconeNamespace": "TestDemo"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.1,
+      "position": [
+        -1840,
+        1312
+      ],
+      "id": "adb9462c-d4f3-4adf-bd26-e1885bdbf281",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "Odqv4UJged0SyvT2",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1760,
+        1504
+      ],
+      "id": "384e6677-c1e1-4579-8bd3-ae4579076304",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "ivhvfR2OOYsCUZEq",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "19672fa4-6fa9-4420-aeea-ff20868bf223",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "=Past",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -704,
+        1056
+      ],
+      "id": "35ff04cc-b768-42f9-9f5b-b8e7b2065448",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "2bdd8fbd-7e36-81fa-b907-fd9e0c883bfc",
+          "mode": "list",
+          "cachedResultName": "Yurii Soc interaction (DB)",
+          "cachedResultUrl": "https://www.notion.so/2bdd8fbd7e3681fab907fd9e0c883bfc"
+        },
+        "title": "={{ $json.description }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Action type|select",
+              "selectValue": "Planned"
+            },
+            {
+              "key": "Related People|relation",
+              "relationValue": [
+                "={{ $json.page_ids.join(',') || '' }}"
+              ]
+            },
+            {
+              "key": "Date (planned interactions)|date",
+              "date": "={{ $json.interaction_date || ''}}"
+            },
+            {
+              "key": "Context|multi_select",
+              "multiSelectValue": "={{ $json.context_tags || '' }}"
+            },
+            {
+              "key": "Location|multi_select",
+              "multiSelectValue": "={{ $json.location_tags || '' }}"
+            },
+            {
+              "key": "Duration|rich_text",
+              "textContent": "={{ $json.duration || ''}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        1152
+      ],
+      "id": "488eaadd-03dd-4079-aa33-ef7524c9786d",
+      "name": "Create Planned action1",
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "2bdd8fbd-7e36-81fa-b907-fd9e0c883bfc",
+          "mode": "list",
+          "cachedResultName": "Yurii Soc interaction (DB)",
+          "cachedResultUrl": "https://www.notion.so/2bdd8fbd7e3681fab907fd9e0c883bfc"
+        },
+        "title": "={{ $json.description || '' }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Action type|select",
+              "selectValue": "Past"
+            },
+            {
+              "key": "Related People|relation",
+              "relationValue": [
+                "={{ $json.page_ids.join(',') || '' }}"
+              ]
+            },
+            {
+              "key": "Date|date",
+              "date": "={{ $json.interaction_date || ''}}"
+            },
+            {
+              "key": "Context|multi_select",
+              "multiSelectValue": "={{ $json.context_tags || '' }}"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Completed"
+            },
+            {
+              "key": "Location|multi_select",
+              "multiSelectValue": "={{ $json.location_tags || '' }}"
+            },
+            {
+              "key": "Duration|rich_text",
+              "textContent": "={{ $json.duration || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        944
+      ],
+      "id": "758b6ed9-c5d8-4746-b60b-206d3a74d187",
+      "name": "Create Past action1",
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "delete",
+        "deleteMode": "all"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryManager",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        848
+      ],
+      "id": "7a961f29-2b14-4ac2-b3d3-7dee37b5f545",
+      "name": "Chat Memory Manager2"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -2464,
+        1152
+      ],
+      "id": "22b9ba8a-93b5-4ec7-a404-f9a597ec91c5",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "ivhvfR2OOYsCUZEq",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=*Past interaction created*\nTitle: {{ $json.name }}\n🏷 Context: {{ $json.property_context }}\n📍 Location: {{ $json.property_location }}\n🕒 Time: {{ $('If3').item.json.interaction_date }}\n⏳ Duration: {{ $json.property_duration }}\n🔗 [Notion URL]({{ $json.url }})",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -272,
+        944
+      ],
+      "id": "7e38b427-4906-4fdd-9052-7f829d9fd0f6",
+      "name": "Send Past interaction1",
+      "webhookId": "a3858060-046c-4d2c-85fb-55b3b13102ef",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=*Planned action created*\nTitle: {{ $json.name }}\n🏷 Context: {{ $json.property_context }}\n🕒 Time: {{ $('If3').item.json.interaction_date }}\n📍 Location: {{ $json.property_location }}\n⏳ Duration: {{ $json.property_duration }}\n🔗 [Notion URL]({{ $json.url }})",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -272,
+        1152
+      ],
+      "id": "21378e96-b6b7-4b97-b63a-97843a6f031a",
+      "name": "Send Planned action1",
+      "webhookId": "290228f7-c2fb-48fb-9931-39cd1f806a7f",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Взаємодію записано. Щоб вийти з агента натисність \"Завершити\"",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🔴 Завершити розмову з агентом",
+                    "additionalFields": {
+                      "callback_data": "end_session"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        736,
+        848
+      ],
+      "id": "26590137-bd71-4b94-90a2-fd327c755498",
+      "name": "Send confirmation1",
+      "webhookId": "8090749f-0421-4ebd-9d41-bbc462c6f5ca",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Створює новий запис для людини у базі контактів Notion і НЕГАЙНО ПОВЕРТАЄ унікальний page_id новоствореного контакту. Використовуй цей інструмент, коли пошук не дав результатів і користувач погодився додати новий контакт.",
+        "workflowId": {
+          "__rl": true,
+          "value": "TpxN7J12uNCDfWOE",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/TpxN7J12uNCDfWOE",
+          "cachedResultName": "add_person_contact_social"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contact_details": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('contact_details', `Ім'я та прізвище людини, яку потрібно додати як новий контакт.`, 'string') }}"
+          },
+          "matchingColumns": [
+            "contact_details"
+          ],
+          "schema": [
+            {
+              "id": "contact_details",
+              "displayName": "contact_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -2288,
+        1152
+      ],
+      "id": "23106854-fbed-4fac-b13e-c24f9862d6b9",
+      "name": "add_person_contact_social"
+    },
+    {
+      "parameters": {
+        "description": "Отримує з Notion повний список існуючих тегів контексту (напр., 'Phone call', 'Walk & talk', 'Restaurant').",
+        "workflowId": {
+          "__rl": true,
+          "value": "jLNmehBTtdW3JilL",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/jLNmehBTtdW3JilL",
+          "cachedResultName": "get_context_tags"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -2128,
+        1152
+      ],
+      "id": "f73b6911-17f0-49bc-930c-003a84056dd7",
+      "name": "get_context_tags"
+    },
+    {
+      "parameters": {
+        "description": "Що робить: Отримує з Notion повний список існуючих тегів локацій.\nЩо повертає: Повертає ОБ'ЄКТ з ключем LocationTags, значення якого — масив рядків з назвами локацій.\nЯк працювати: Звернутися до ключа LocationTags в отриманому об'єкті.",
+        "workflowId": {
+          "__rl": true,
+          "value": "m7gBPe8F5ggHyaC7",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/m7gBPe8F5ggHyaC7",
+          "cachedResultName": "get_location_tags_workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -1968,
+        1152
+      ],
+      "id": "14cb5be7-00af-4269-8b73-903c9550b2da",
+      "name": "get_location_tags"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "40b5dfb0-47bc-4cf3-90e5-41fea96c637a",
+              "leftValue": "={{ $json.page_ids.includes(\"21e0466d-200b-81b7-8ba5-ebafd9ffddf4\") }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1120,
+        848
+      ],
+      "id": "479adcee-0b5e-4a34-883d-e169e6907d67",
+      "name": "IF \"Me\""
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=*Past interaction created (Me)*\nTitle: {{ $json.name }}\n🏷 Context: {{ $json.property_context }}\n📍 Location: {{ $json.property_location }}\n🕒 Time: {{ $('If1').item.json.interaction_date }}\n⏳ Duration: {{ $json.property_duration }}\n🔗 [Notion URL]({{ $json.url }})",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -272,
+        512
+      ],
+      "id": "ee703ab0-1a9b-4c83-b795-ba363d37cb6e",
+      "name": "Send Past interaction",
+      "webhookId": "7910fe9b-ce58-4aed-8866-a4fd6afac54c",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=*Planned action created (Me)*\nTitle: {{ $json.name }}\n🏷 Context: {{ $json.property_context }}\n🕒 Time: {{ $('IF \"Me\"').item.json.interaction_date }}\n📍 Location: {{ $json.property_location }}\n⏳ Duration: {{ $json.property_duration }}\n🔗 [Notion URL]({{ $json.url }})",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -272,
+        704
+      ],
+      "id": "ddce3f41-900e-42a8-a4ab-bb2f98d95328",
+      "name": "Send Planned action",
+      "webhookId": "81389c36-5e39-4851-beac-68b7fd2dbe72",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "2bdd8fbd-7e36-81fa-b907-fd9e0c883bfc",
+          "mode": "list",
+          "cachedResultName": "Yurii Soc interaction (DB)",
+          "cachedResultUrl": "https://www.notion.so/2bdd8fbd7e3681fab907fd9e0c883bfc"
+        },
+        "title": "={{ $json.description || '' }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Action type|select",
+              "selectValue": "=(Me) Past"
+            },
+            {
+              "key": "Related People|relation",
+              "relationValue": [
+                "={{ $json.page_ids.join(',') || '' }}"
+              ]
+            },
+            {
+              "key": "Date|date",
+              "date": "={{ $json.interaction_date || ''}}"
+            },
+            {
+              "key": "Context|multi_select",
+              "multiSelectValue": "={{ $json.context_tags || '' }}"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Completed"
+            },
+            {
+              "key": "Location|multi_select",
+              "multiSelectValue": "={{ $json.location_tags || '' }}"
+            },
+            {
+              "key": "Duration|rich_text",
+              "textContent": "={{ $json.duration || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        512
+      ],
+      "id": "c2b83713-c41c-4189-ac50-29ab03f64ce7",
+      "name": "Create Past action (Me)",
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "2bdd8fbd-7e36-81fa-b907-fd9e0c883bfc",
+          "mode": "list",
+          "cachedResultName": "Yurii Soc interaction (DB)",
+          "cachedResultUrl": "https://www.notion.so/2bdd8fbd7e3681fab907fd9e0c883bfc"
+        },
+        "title": "={{ $json.description || '' }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Action type|select",
+              "selectValue": "=(Me) Planned"
+            },
+            {
+              "key": "Related People|relation",
+              "relationValue": [
+                "={{ $json.page_ids.join(',') || ''}}"
+              ]
+            },
+            {
+              "key": "Date (planned interactions)|date",
+              "date": "={{ $json.interaction_date || ''}}"
+            },
+            {
+              "key": "Context|multi_select",
+              "multiSelectValue": "={{ $json.context_tags || ''}}"
+            },
+            {
+              "key": "Location|multi_select",
+              "multiSelectValue": "={{ $json.location_tags || '' }}"
+            },
+            {
+              "key": "Duration|rich_text",
+              "textContent": "={{ $json.duration || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        704
+      ],
+      "id": "4fe5b83f-5eab-402c-8e5e-f61b0fa577df",
+      "name": "Create Planned action (Me)",
+      "credentials": {
+        "notionApi": {
+          "id": "pT8uIkfmBHOFNUMC",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🔴 Завершити розмову з агентом",
+                    "additionalFields": {
+                      "callback_data": "end_session"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1392,
+        1040
+      ],
+      "id": "c5a68ceb-88e9-461f-a550-76ade5db069e",
+      "name": "Send message3",
+      "webhookId": "9a9646e8-f001-4b0e-bbd6-b1dd9d6e0f7e",
+      "credentials": {
+        "telegramApi": {
+          "id": "she1bsRxUnH9xk5j",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function getKyivDateTimeFormatted() {\n  const kyivTime = new Date().toLocaleString(\"en-US\", { timeZone: \"Europe/Kyiv\" });\n  const kyivDate = new Date(kyivTime);\n\n  const year = kyivDate.getFullYear();\n  const month = String(kyivDate.getMonth() + 1).padStart(2, '0');\n  const day = String(kyivDate.getDate()).padStart(2, '0');\n  const hour = String(kyivDate.getHours()).padStart(2, '0');\n  const minute = String(kyivDate.getMinutes()).padStart(2, '0');\n  const second = String(kyivDate.getSeconds()).padStart(2, '0');\n\n  return `${year}-${month}-${day}T${hour}:${minute}:${second}`;\n}\n\nreturn [{ json: { kyivDateTime: getKyivDateTimeFormatted() } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2192,
+        864
+      ],
+      "id": "998f5859-ee86-48e2-b189-e717f6be252f",
+      "name": "Kyiv ISO1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "19672fa4-6fa9-4420-aeea-ff20868bf223",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "=Past",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -704,
+        608
+      ],
+      "id": "f055a742-092b-4684-9caa-46a6958d7133",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "content": "# AI Personal CRM Agent (Vector-Powered)\n\n# This agent manages your social interactions log, linking events to specific people in your Notion database using semantic search.\n\n# **Key Capabilities:**\n## 1. **Vector Entity Linking:** Utilizes a **Vector Database** to find people. This handles typos, nicknames, and variations much better than standard string matching.\n## 2. **Smart Tagging:** Fetches existing tags (Context/Location) to ensure data consistency. Generates standardized new tags on the fly.\n## 3. **Time Inference:** Automatically calculates start times for past events based on duration.\n\n## **Stack:** OpenAI, **Pinecone/Vector Store**, Notion API, Postgres (Memory).",
+        "height": 640,
+        "width": 1056
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2416,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "ac55e9aa-18d4-4d16-9e16-4f5b812b46e3",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "content": "#  Multi-Phase Validation Logic\n\n# **Phases 1-3 (People):**\n# Iterates through every name mentioned.\n## * If found: Confirms identity.\n## * If new: Offers to create a new contact card immediately via `add_person_contact_social`.\n\n# **Phases 4-5 (Metadata):**\n## **Context:** Matches intent against dynamic tag list (e.g., \"Meeting\" → `Meeting`).\n## **Location:** Normalizes places (e.g., \"At Forum\" → `Lviv`, `Forum`).\n\n# **Phase 7 (Commit):**\n## Only generates the final JSON payload after explicit user approval of the generated report.",
+        "height": 784,
+        "width": 1024,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "5bac6b11-9c99-4143-b85d-9687263c37f5",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "content": "# CRM Toolset\n\n# Vector Search & Create:\n## * `search_people_in_notion`: **Semantic Lookup.** Queries the **Vector Database** to retrieve the correct person based on text embeddings. Ensures high accuracy even with vague queries.\n## * `add_person_contact_social`: Creates a new Person entry and returns the new ID instantly.\n\n# Taxonomy Management:\n## * `get_context_tags` & `get_location_tags`: Retrieves the current schema from Notion to prevent tag duplication.",
+        "height": 480,
+        "width": 1248,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1552,
+        1488
+      ],
+      "typeVersion": 1,
+      "id": "92d19619-2def-4aad-b875-0b652b4611ae",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=social_memory_{{ $('Telegram Trigger').item.json.message?.chat.id ?? $('Telegram Trigger').item.json.callback_query?.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.4,
+      "position": [
+        -1184,
+        1264
+      ],
+      "id": "2fa7b8da-7395-4f2b-9474-8f101c9c3006",
+      "name": "Social Agent Postgres Memory",
+      "credentials": {
+        "postgres": {
+          "id": "BMsRt21PWwBbNr2n",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Retrieve output string from the preceding node (AI Agent/Chat Model)\n// Note: Data path may vary depending on the specific model integration\nconst rawOutput = $json.output || ($json.choices && $json.choices[0].message.content);\n\nif (!rawOutput) {\n  return { error: \"No input data found.\" };\n}\n\n// Use regex to extract the JSON block from the raw string\n// Matches the substring starting from the first '{' to the last '}'\nconst jsonMatch = rawOutput.match(/\\{[\\s\\S]*\\}/);\n\nif (jsonMatch) {\n  try {\n    // Parse and return the extracted JSON payload\n    const parsedJson = JSON.parse(jsonMatch[0]);\n    return parsedJson;\n  } catch (error) {\n    // Return error details if JSON parsing fails\n    return { error: \"Failed to parse JSON.\", details: error.message };\n  }\n}\n\n// Return error if no JSON structure is detected in the input\nreturn { error: \"No JSON object found in the output.\" };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1408,
+        848
+      ],
+      "id": "ee0a700b-79fa-441f-845f-39ee189ab69a",
+      "name": "Extract Structured JSON"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ef0705c1-a8ba-495f-b40a-662c673170c2",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "{",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1648,
+        864
+      ],
+      "id": "efab5847-e754-4a58-b86e-5f69d0edc815",
+      "name": "Validate JSON Format",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "errorMessage": "False validate json!"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        976
+      ],
+      "id": "c1880571-3d41-4f73-b598-26ef1c2b0054",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Get Message Text').item.json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=\n<role>\nТи — розумний розмовний асистент.\n</role>\n<task>\nТвоя головна мета — допомогти користувачеві записувати минулі та майбутні взаємодії з людьми з його списку контактів у Notion.\n</task>\n<constraints>\nКлючові принципи\n1. **Послідовність:** Якщо у запиті кілька людей, ти обробляєш їх строго по черзі.\n2. **Підтвердження:** Ти ніколи не генеруєш фінальні дані (JSON), не отримавши явного підтвердження всіх даних (людей, контексту, дати) з користувачем.\n3. **Сьогоднішня дата та час:** `{{ $json.kyivDateTime }}`.\nВАЖЛИВО: Твоя відповідь, що містить фінальний JSON, ПОВИННА бути ТІЛЬКИ самим JSON-об'єктом. Без жодних пояснень, коментарів, або форматування. Тільки чистий JSON.\n</constraints>\n<context>\nДоступні інструменти\nsearch_people_in_notion(person_name: str)\nЩо робить: Шукає людину та повертає список з її page_id.\nadd_person_contact_social(contact_details: str)\nЩо робить: Створює новий контакт і негайно повертає об'єкт, що містить page_id та канонічне name новоствореного контакту.\nget_context_tags()\nЩо робить: Отримує з Notion повний список існуючих тегів контексту.\nЩо повертає: Повертає ОДИН ОБ'ЄКТ, в якому є ключ ContexTags. Значення цього ключа — це масив рядків з назвами всіх доступних тегів.\nЯк працювати: Щоб отримати доступ до списку тегів, ти повинен звернутися до ключа ContexTags в отриманому об'єкті.\nget_location_tags()\nЩо робить: Отримує з Notion повний список існуючих тегів локацій.\nЩо повертає: Повертає ОБ'ЄКТ з ключем LocationTags, значення якого — масив рядків з назвами локацій.\nЯк працювати: Звернутися до ключа LocationTags в отриманому об'єкті.\n</context>\n<instructions>\nТвій робочий процес\nФаза 1: Аналіз та виявлення кількості людей\nПроаналізуй запит користувача, щоб зрозуміти його намір (минула/майбутня подія), дату, суть взаємодії, а також тривалість взаємодії, якщо вона вказана.\nАналіз тривалості: Якщо користувач вказує тривалість (напр., 'зустріч на годину', 'говорили 15 хвилин', 'дзвінок тривав 2h'), ти повинен витягнути це значення.\nСтандартизація формату: Нормалізуй отримане значення до єдиного формату: Xh для годин та Ym для хвилин (напр., 1h, 30m, 2h).\nЯкщо тривалість не вказана, це поле залишається порожнім.\nАвтоматичний розрахунок дати для минулих подій: Якщо намір — це Past (минула подія), вказана тривалість, але НЕ вказана конкретна дата чи час, ти повинен автоматично розрахувати час початку взаємодії. Формула розрахунку: (поточна дата і час) - (тривалість). Ти повинен запропонувати цей розрахований час користувачеві для підтвердження.\nПриклад: Поточний час 2025-08-04T13:25:00. Запит користувача: \"Говорили з Іваном годину\". Ти розраховуєш: 13:25 - 1h = 12:25. Твоя пропозиція: \"Записуємо, що розмова з Іваном відбулася сьогодні, о 12:25?\"\nВизнач усіх людей, згаданих у запиті.\nЯкщо знайдено одну людину, переходь до Фази 2.\nЯкщо знайдено кількох людей, переходь до Фази 3.\nЯкщо не знайдено жодної людини, переходь до Фази 1.5.\nФаза 1.5: Обробка \"сольної\" взаємодії (Контакт \"Me\")\nЯкщо в запиті не згадано жодної особи, запитай у користувача, чи це була взаємодія з самим собою.\nПриклад: \"Схоже, у цій події не згадано інших учасників. Записати її як взаємодію з контактом 'Me'?\"\nДій відповідно до відповіді:\nЯкщо користувач погоджується (\"так\"): Виконай search_people_in_notion(person_name='Me'), щоб знайти page_id цього спеціального контакту. Після отримання page_id та імені, переходь одразу до Фази 4 (аналіз контексту).\nЯкщо користувач відмовляється (\"ні\"): Попроси його вказати, з ким була взаємодія, і повернись до Фази 1 для повторного аналізу.\nФаза 2: Обробка однієї людини\nЦе стандартний процес для однієї особи. Виконай search_people_in_notion і дій за одним зі сценаріїв:\nА (Знайдено): Підтвердь особу та її page_id з користувачем. Приклад: \"Я знайшов у контактах Дмитро Павоський (page_id: 1bf0...). Все вірно, продовжуємо?\"\nБ (Кілька варіантів): Попроси користувача уточнити.\nВ (Не знайдено): Запропонуй додати контакт через add_person_contact_social, отримай page_id і підтвердь. Приклад: \"...Хочете додати її як новий контакт?\"\nПісля успішного підтвердження переходь одразу до Фази 4.\nФаза 3: Послідовна обробка кількох людей\nПовідом користувача: Скажи, що бачиш кількох людей і будеш обробляти їх по черзі.\nЦикл обробки: Для кожної людини зі списку, по черзі, виконай повний цикл валідації (як у Фазі 2).\nПісля обробки всіх людей зі списку переходь до Фази 4.\nФаза 4: Аналіз та присвоєння контексту\nНа цьому етапі ти ВЖЕ маєш опис взаємодії.\nОтримай теги: Використай інструмент get_context_tags(), щоб отримати актуальний список доступних тегів.\nПроаналізуй та співстав: Дій за одним зі сценаріїв:\nСценарій А (Знайдено відповідний тег): Якщо один або декілька тегів чітко відповідають опису, ти \"зберігаєш\" їх у пам'яті для фінального підтвердження.\nСценарій Б (Потрібен новий тег): Сценарій Б (Потрібен новий тег): Якщо жоден з існуючих тегів не підходить, але з опису зрозумілий новий, специфічний контекст (напр., \"риболовля\", \"виставка\", \"боулінг\"), ти ЗОБОВ'ЯЗАНИЙ запропонувати його як новий тег згідно з правилами. Не обирай менш релевантні загальні теги зі списку, якщо є можливість створити точний новий. Ти генеруєш назву для нового тегу за такими правилами:\nВизнач суть: Зрозумій ключову активність (напр., боулінг, похід, прийом у лікаря).\nПереклади англійською: Переклади цю суть англійською мовою.\nЗроби назву короткою: Використовуй 1-2 слова. Для кількох слів використовуй формат PascalCase (напр., BoardGames, WalkAndTalk).\nПриклади генерації:\nОпис: \"грали в боулінг\" -> Новий тег: Bowling\nОпис: \"відвідали зоопарк\" -> Новий тег: Zoo\nОпис: \"допомагав з переїздом\" -> Новий тег: MovingHelp\nСценарій В (Загальний контекст): Якщо опис занадто загальний ('спілкувались', 'говорили про життя'), не пропонуй жодних тегів.\nПісля аналізу контексту переходь до Фази 5.\nФаза 5: Аналіз та присвоєння локації\nНа цьому етапі ти аналізуєш опис взаємодії на предмет згадки місця.\nОтримай теги локацій: Використай інструмент get_location_tags().\nПроаналізуй та співстав: Дій за одним зі сценаріїв:\nСценарій А (Знайдено відповідну локацію): Якщо існуюча локація чітко відповідає опису (напр., для \"зустрілись біля Форуму\" підходить тег 'Forum'), ти \"зберігаєш\" її.\nСценарій Б (Потрібна нова локація): Якщо локація нова, визнач її тип:\nТип 1: Власна назва (закладу, вулиці, парку). \"Зберігай\" саму назву.\nПриклад: ...в кафе \"Чорний лис\"... -> Новий тег: кафе Чорний лис\nТип 2: Загальна категорія (аеропорт, вокзал, кафе). Генеруй тег за правилами:\nПереклади англійською.\nЗроби назву короткою і використовуй PascalCase.\nПриклад: ...в кафе... -> Новий тег: Cafe\nПриклад: ...в аеропорту... -> Новий тег: Airport\nСценарій В (Локація не вказана): Не пропонуй жодних тегів.\nПісля аналізу локації переходь до Фази 6.\nФаза 6: Фінальне підтвердження\nПісля того, як усі дані були визначені, сформуй детальний звіт по взаємодії і запитай фінального підтвердження.\nТвоє підсумкове повідомлення повинно чітко вказувати:\nЩо: Короткий опис події.\nКоли: Дату та час взаємодії.\nТривалість: Визначена тривалість (напр., 1h, 30m), якщо вона була вказана.\nКонтекст: Список підібраних тегів контексту.\nЛокація: Список підібраних тегів локації.\nЗ ким: Повний нумерований список людей та їхні page_id.\nФаза 7: Генерація фінального JSON\nТІЛЬКИ ПІСЛЯ фінального підтвердження з Фази 6, згенеруй ОДИН JSON ОБ'ЄКТ.\n</instructions>\n<output_format>\nСтруктура JSON:\n\"intent\": string, (Past або Planned).\n\"person_names\": array of strings, імена та прізвища людей.\n\"interaction_date\": string, дата та час у форматі YYYY-MM-DDTHH:MM:SS.\n\"description\": string, опис взаємодії.\n\"page_ids\": array of strings, унікальні page_id сторінок людей.\n\"context_tags\": array of strings, список назв підтверджених тегів контексту.\n\"location_tags\": array of strings, список назв підтверджених тегів локації.\n\"duration\": string, стандартизована тривалість взаємодії (напр., \"1h\", \"30m\"). Може бути null, якщо не вказано.\n</output_format>\n<examples>\n<example>\n**Приклад фінального підтвердження:**\n> Готово до запису! Давайте перевіримо:\n> * **Подія:** Кава з Дмитром Павоським та Оксаною Вінник.\n> * **Дата та час:** 2025-06-27T10:30:00.\n> * **Тривалість:** `1h`\n> * **Контекст:** `[Restaurant, Quick]`\n> * **Локація:** `[Lviv, Forum]`\n> * **Учасники:**\n> 1. Дмитро Павоський (page_id: 1bf0...)\n> 2. Оксана Вінник (page_id: 95fe...)\n>\n> Все вірно, зберігаємо?\n</example>\n<example>\n**Приклад JSON для однієї людини:**\nJSON\n{\n\"intent\": \"Planned\",\n\"person_names\": [\"Дмитро Павоський\"],\n\"interaction_date\": \"2025-06-27T13:30:00\",\n\"description\": \"Прогулянка з Дмитром Павоським у парку Погулянка, що тривала близько години\",\n\"page_ids\": [\"1bf0466d-200b-8071-97ac-dc6caf25ddc7\"],\n\"context_tags\": [\"Walk & talk\", \"Outdoors\"],\n\"location_tags\": [\"Lviv\", \"Парк Погулянка\"],\n\"duration\": \"1h\"\n}\n</example>\n<example>\n**Приклад JSON для кількох людей:**\nJSON\n{\n\"intent\": \"Planned\",\n\"person_names\": [\"Дмитро Павоський\", \"Оксана Вінник\"],\n\"interaction_date\": \"2025-06-27T09:30:00\",\n\"description\": \"Кава з Дмитром Павоським та Оксаною Вінник у Форумі, сиділи десь 2 години\",\n\"page_ids\": [\"1bf0466d-200b-8071-97ac-dc6caf25ddc7\", \"95fe1cde-a1b2-c3d4-e5f6-1234567890ab\"],\n\"context_tags\": [\"Restaurant\", \"Quick\"],\n\"location_tags\": [\"Lviv\", \"Forum\"],\n\"duration\": \"2h\"\n}\n</example>\n</examples>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -1968,
+        864
+      ],
+      "id": "dc98e76f-e185-463b-8b29-a12d0ac4a47c",
+      "name": "Social CRM Handler"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Pinecone Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Social CRM Handler",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Create Past action1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Planned action1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Planned action1": {
+      "main": [
+        [
+          {
+            "node": "Send Planned action1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Past action1": {
+      "main": [
+        [
+          {
+            "node": "Send Past interaction1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory Manager2": {
+      "main": [
+        [
+          {
+            "node": "Send confirmation1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Social CRM Handler",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Past interaction1": {
+      "main": [
+        [
+          {
+            "node": "Chat Memory Manager2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Planned action1": {
+      "main": [
+        [
+          {
+            "node": "Chat Memory Manager2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "add_person_contact_social": {
+      "ai_tool": [
+        [
+          {
+            "node": "Social CRM Handler",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_context_tags": {
+      "ai_tool": [
+        [
+          {
+            "node": "Social CRM Handler",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_location_tags": {
+      "ai_tool": [
+        [
+          {
+            "node": "Social CRM Handler",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF \"Me\"": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Past interaction": {
+      "main": [
+        [
+          {
+            "node": "Chat Memory Manager2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Planned action": {
+      "main": [
+        [
+          {
+            "node": "Chat Memory Manager2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Past action (Me)": {
+      "main": [
+        [
+          {
+            "node": "Send Past interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Planned action (Me)": {
+      "main": [
+        [
+          {
+            "node": "Send Planned action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kyiv ISO1": {
+      "main": [
+        [
+          {
+            "node": "Social CRM Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Create Past action (Me)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Planned action (Me)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Social Agent Postgres Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Social CRM Handler",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Chat Memory Manager2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Structured JSON": {
+      "main": [
+        [
+          {
+            "node": "IF \"Me\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate JSON Format": {
+      "main": [
+        [
+          {
+            "node": "Extract Structured JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send message3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Social CRM Handler": {
+      "main": [
+        [
+          {
+            "node": "Validate JSON Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4eb52089-eb89-4c01-9223-591a49dc58cc",
+  "meta": {
+    "instanceId": "c870bd7539f9a2bc5fc0ada3b6a85635bbf1489c6c06ca95b23aaa62cd86e259"
+  },
+  "id": "F11EJ4tKQCw3g3LP",
+  "tags": [
+    {
+      "updatedAt": "2026-06-01T19:30:50.987Z",
+      "createdAt": "2026-06-01T19:30:50.987Z",
+      "id": "wGMWPMKyMmT0I1In",
+      "name": "Portfolio"
+    }
+  ]
+}

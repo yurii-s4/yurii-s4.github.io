@@ -1,0 +1,16 @@
+---
+import SectionNode from './SectionNode.astro';
+import { profile } from '../data/site';
+import { withBase } from '../utils/url';
+---
+
+<SectionNode eyebrow="RESPOND ▸ contact" id="contact" class="contact">
+  <h2>Let's automate something.</h2>
+  <p>If you've got a repetitive process that should run itself, send it over. Most conversations start with a quick description of the manual steps.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href={`mailto:${profile.email}`}>Email me ↗</a>
+    <a class="btn btn-ghost" href={profile.links.telegram} target="_blank" rel="noopener">Telegram ↗</a>
+    <a class="btn btn-ghost" href={profile.links.github} target="_blank" rel="noopener">GitHub ↗</a>
+    <a class="btn btn-ghost" href={withBase(profile.links.cv)}>Download CV ↓</a>
+  </div>
+</SectionNode>

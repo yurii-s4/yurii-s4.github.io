@@ -1,0 +1,317 @@
+
+:root {
+  --ink: #0b0d17;
+  --panel: #131628;
+  --panel-2: #1a1e34;
+  --wire: #2c3350;
+  --text: #ecedf5;
+  --body: #c4c7dd;
+  --muted: #8b8fb0;
+  --coral: #ff5c49;
+  --coral-dim: #c0412f;
+  --mint: #5fe0b7;
+
+  --display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --rail-w: 72px;
+  --maxw: 1140px;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--body);
+  font-family: var(--font);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+a { color: var(--text); text-decoration: none; }
+a:hover { color: var(--coral); }
+
+h1, h2, h3 { font-family: var(--display); color: var(--text); line-height: 1.04; margin: 0; font-weight: 800; letter-spacing: -0.03em; }
+
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+/* --- The pipeline: each section is a row of [rail | node card] ------------- */
+.flow { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+.node-row { display: grid; grid-template-columns: var(--rail-w) 1fr; }
+
+.rail { position: relative; }
+.rail-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--wire);
+  overflow: hidden;
+}
+/* the moving "data" packets flowing down the wire */
+.rail-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    var(--mint) 0 7px,
+    transparent 7px 30px
+  );
+  opacity: 0.85;
+  animation: flow 2.4s linear infinite;
+}
+@keyframes flow { to { transform: translateY(30px); } }
+
+.port {
+  position: absolute;
+  left: 50%;
+  top: 38px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--coral);
+  transform: translateX(-50%);
+  z-index: 2;
+  box-shadow: 0 0 0 4px var(--ink);
+}
+
+.node-card { padding: 64px 0 40px 28px; min-width: 0; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--coral);
+  margin: 0 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.eyebrow::before {
+  content: '';
+  width: 7px; height: 7px; border-radius: 2px; background: var(--mint);
+}
+
+/* --- Top bar --------------------------------------------------------------- */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--ink) 78%, transparent);
+  border-bottom: 1px solid var(--wire);
+}
+.nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.brand { font-family: var(--mono); font-weight: 600; letter-spacing: 0.04em; display: flex; align-items: center; gap: 10px; color: var(--text); }
+.brand .glyph { width: 10px; height: 10px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 12px var(--coral); }
+.nav-links { display: flex; align-items: center; gap: 26px; font-family: var(--mono); font-size: 0.82rem; }
+.nav-links a { color: var(--muted); }
+.nav-links a:hover { color: var(--text); }
+
+/* --- Workflows nav dropdown ------------------------------------------------- */
+.nav-dropdown { position: relative; }
+.nav-dropdown-trigger {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: var(--mono); font-size: 0.82rem; color: var(--muted);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.nav-dropdown-trigger:hover,
+.nav-dropdown-trigger[aria-expanded="true"] { color: var(--text); }
+.nav-dropdown-trigger .caret {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  color: var(--coral);
+  background: color-mix(in srgb, var(--coral) 18%, transparent);
+  border-radius: 50%;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.nav-dropdown-trigger .caret svg { width: 12px; height: 9px; display: block; }
+.nav-dropdown-trigger:hover .caret,
+.nav-dropdown-trigger[aria-expanded="true"] .caret { background: color-mix(in srgb, var(--coral) 32%, transparent); }
+.nav-dropdown-trigger[aria-expanded="true"] .caret { transform: rotate(180deg); }
+
+.nav-dropdown-menu {
+  position: absolute; top: calc(100% + 14px); right: -12px;
+  width: max-content; min-width: 280px; max-width: 360px; max-height: 70vh;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px;
+  background: var(--panel); border: 1px solid var(--wire); border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 60;
+}
+.nav-dropdown-menu.open { opacity: 1; visibility: visible; transform: translateY(0); }
+.nav-dropdown-item {
+  display: block; padding: 9px 12px; border-radius: 6px;
+  font-family: var(--mono); font-size: 0.8rem; line-height: 1.35; color: var(--body);
+  white-space: normal;
+}
+.nav-dropdown-item:hover,
+.nav-dropdown-item:focus-visible { background: var(--panel-2); color: var(--text); }
+
+/* --- Hero ------------------------------------------------------------------ */
+.hero h1 {
+  font-size: clamp(2.8rem, 9vw, 6.5rem);
+  margin: 8px 0 18px;
+}
+.hero h1 .accent { color: var(--coral); }
+.hero .role { font-family: var(--mono); color: var(--text); font-size: clamp(0.95rem, 2vw, 1.15rem); letter-spacing: 0.02em; }
+.hero .lede { max-width: 56ch; margin: 22px 0 0; font-size: 1.15rem; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.05em;
+  color: var(--mint);
+  border: 1px solid color-mix(in srgb, var(--mint) 45%, transparent);
+  background: color-mix(in srgb, var(--mint) 10%, transparent);
+  padding: 6px 13px; border-radius: 999px;
+}
+.pill .blip { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); animation: blip 1.6s ease-in-out infinite; }
+@keyframes blip { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+.cta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 34px; }
+.btn {
+  font-family: var(--mono); font-size: 0.9rem; letter-spacing: 0.02em;
+  padding: 13px 22px; border-radius: 10px; border: 1px solid var(--wire);
+  display: inline-flex; align-items: center; gap: 9px; transition: all 0.18s ease;
+}
+.btn-primary { background: var(--coral); color: #1a0703; border-color: var(--coral); font-weight: 600; }
+.btn-primary:hover { color: #1a0703; transform: translateY(-2px); box-shadow: 0 8px 24px color-mix(in srgb, var(--coral) 40%, transparent); }
+.btn-ghost:hover { border-color: var(--coral); color: var(--coral); transform: translateY(-2px); }
+
+/* --- About ----------------------------------------------------------------- */
+.about h2 { font-size: clamp(1.9rem, 5vw, 3rem); max-width: 18ch; }
+.about p { max-width: 60ch; margin-top: 18px; font-size: 1.15rem; }
+
+/* --- Tech stack ------------------------------------------------------------ */
+.stack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+.stack-card { border: 1px solid var(--wire); border-radius: var(--radius); padding: 22px; background: var(--panel); }
+.stack-card .label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.22em; color: var(--mint); margin-bottom: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font-family: var(--mono); font-size: 0.82rem;
+  padding: 5px 11px; border-radius: 7px;
+  background: var(--panel-2); border: 1px solid var(--wire); color: var(--body);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.chip-icon {
+  width: 16px; height: 16px;
+  object-fit: contain; flex-shrink: 0;
+}
+
+/* --- Workflow gallery ------------------------------------------------------ */
+.wf-grid { display: grid; gap: 26px; }
+.wf-card {
+  border: 1px solid var(--wire); border-radius: var(--radius);
+  background: var(--panel); overflow: hidden;
+  scroll-margin-top: 76px; /* keeps the card clear of the sticky nav when jumped to from the dropdown */
+}
+.wf-head { padding: 22px 24px 0; }
+.wf-card h3 { font-family: var(--display); font-size: 1.45rem; letter-spacing: -0.02em; }
+.wf-meta { display: grid; gap: 6px; margin: 16px 0 18px; }
+.wf-meta div { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: start; }
+.wf-meta .k { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.wf-meta .v { color: var(--body); }
+.wf-card .chips { padding: 0 24px 20px; }
+
+/* the live n8n canvas mount */
+.wf-canvas {
+  --wf-canvas-min-h: 480px; /* kept in sync with --n8n-workflow-min-height below */
+  min-height: var(--wf-canvas-min-h); /* reserved up front so the overlay below always has somewhere to sit */
+  border-top: 1px solid var(--wire);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+  background: var(--panel-2);
+  position: relative;
+}
+
+.wf-canvas n8n-demo {
+  display: block;
+  width: 100%;
+  /* --n8n-workflow-min-height drives the iframe height inside the component */
+  --n8n-workflow-min-height: 480px;
+}
+
+@media (max-width: 720px) {
+  .wf-canvas { --wf-canvas-min-h: 360px; }
+  .wf-canvas n8n-demo { --n8n-workflow-min-height: 360px; }
+}
+
+/* --- Workflow loading state --------------------------------------------------
+   Simple spinner + label, shown as an opaque overlay ON TOP of .wf-canvas
+   (not swapped out the instant <n8n-demo> is appended). Appending the
+   component only starts ITS OWN async render of a cross-origin iframe, so
+   removing the overlay immediately on append left a visible grey gap before
+   the real graph showed up. The overlay now stays until the script detects
+   the internal iframe has actually loaded (see WorkflowGallery.astro). */
+.wf-loading {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  padding: 20px; text-align: center;
+  background: var(--panel-2);
+  font-family: var(--mono); font-size: 0.82rem; color: var(--muted);
+}
+.wf-loading .spin {
+  width: 28px; height: 28px;
+  border: 3px solid var(--wire);
+  border-top-color: var(--coral);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+.wf-slow { display: none; color: var(--coral); }
+.wf-canvas.slow .wf-slow { display: inline; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* visible, non-dimmed error state — replaces the loader entirely on failure */
+.wf-error {
+  min-height: var(--wf-canvas-min-h);
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 20px;
+  font-family: var(--mono); font-size: 0.82rem; color: var(--muted);
+}
+
+/* --- Stats ----------------------------------------------------------------- */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px; }
+.stat { border-left: 2px solid var(--coral); padding-left: 16px; }
+.stat .v { font-family: var(--display); font-weight: 800; font-size: clamp(2.2rem, 5vw, 3.2rem); color: var(--text); letter-spacing: -0.03em; }
+.stat .l { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.08em; color: var(--muted); }
+
+/* --- Contact + footer ------------------------------------------------------ */
+.contact h2 { font-size: clamp(1.9rem, 5vw, 3rem); }
+.contact p { max-width: 52ch; margin-top: 14px; font-size: 1.15rem; }
+.contact .cta-row { margin-top: 28px; }
+
+.footer { border-top: 1px solid var(--wire); margin-top: 30px; }
+.footer-inner { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; padding: 26px 0; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.footer-inner a { color: var(--muted); }
+.footer-inner a:hover { color: var(--coral); }
+
+/* --- Responsive ------------------------------------------------------------ */
+@media (max-width: 720px) {
+  :root { --rail-w: 34px; }
+  .node-card { padding-left: 18px; }
+  .nav-links { display: none; }
+  .wf-meta div { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* --- Accessibility --------------------------------------------------------- */
+:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; scroll-behavior: auto; }
+  .rail-line::after { opacity: 0.4; }
+}
