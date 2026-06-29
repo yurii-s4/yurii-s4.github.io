@@ -86,10 +86,10 @@ export const stack: StackGroup[] = [
 ];
 
 export const stats: Stat[] = [
-  { value: '40+', label: 'workflows shipped' },
-  { value: '60+', label: 'integrations wired' },
-  { value: '120h', label: 'saved / month' },
-  { value: '1+', label: 'years automating' },
+  { value: '20+', label: 'workflows shipped' },
+  { value: '15+', label: 'integrations wired' },
+  { value: '100h', label: 'saved / month' },
+  { value: '1+', label: 'years R&D' },
 ];
 
 
